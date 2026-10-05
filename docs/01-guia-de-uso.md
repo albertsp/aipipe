@@ -143,8 +143,8 @@ Qué **no** cuenta como respuesta (a propósito, porque aprobar equivale a manda
 Para que aipipe vea tu respuesta, `aipipe run` o `aipipe watch` tienen que ejecutarse después de comentar. Con `watch`
 en marcha tarda como mucho un intervalo de sondeo.
 
-> **Cuándo usar `ai:approve`:** tickets que tocan autenticación, despliegue, datos o dependencias; tickets con texto
-> copiado de fuentes externas; cambios grandes (tier heavy) y las primeras veces que uses aipipe en un proyecto.
+> **Cuándo usar `ai:approve`:** tickets que tocan autenticación, despliegue, secretos, datos o dependencias; tickets con
+> texto copiado de fuentes externas; cambios grandes (tier heavy) y las primeras veces que uses aipipe en un proyecto.
 > Para tareas triviales no merece la pena: el plan es una espera más.
 
 ## 7. Cancelar, reintentar y limpiar
