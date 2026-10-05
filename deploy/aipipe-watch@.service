@@ -1,0 +1,42 @@
+# aipipe-watch@.service  —  PLANTILLA SIN PROBAR
+#
+# Una instancia por repositorio: `aipipe-watch@mi-repo` vigila ~aipipe/work/mi-repo.
+#
+# Instalación (como albert, con sudo):
+#   sudo cp deploy/aipipe-watch@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aipipe-watch@sandbox
+#   journalctl -u aipipe-watch@sandbox -f
+#
+# Antes de activarla: haz una pasada manual con `aipipe run` y comprueba que `aipipe doctor` está en verde.
+#
+# AVISO DE SEGURIDAD: EnvironmentFile pone LINEAR_API_KEY en el entorno del proceso y, por tanto, también en el de los
+# agentes (hallazgo ALB-27; ver docs/05-seguridad.md). Úsalo solo con repositorios de prueba hasta resolverlo.
+
+[Unit]
+Description=aipipe watch (%i)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aipipe
+Group=aipipe
+WorkingDirectory=/home/aipipe/work/%i
+EnvironmentFile=/home/aipipe/.config/aipipe/env
+Environment=PATH=/home/aipipe/venv/bin:/home/aipipe/.opencode/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/aipipe/venv/bin/aipipe watch --interval 300
+Restart=on-failure
+RestartSec=30
+# Al parar el servicio se termina todo el grupo (agentes, tests) y no quedan procesos huérfanos.
+KillMode=control-group
+TimeoutStopSec=30
+
+# Endurecimiento básico (no sustituye a ALB-27).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

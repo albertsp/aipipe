@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aipipe"
+version = "0.5.0"
+description = "Pipeline Linear -> OpenCode (Go) con router de modelos, agentes por rol y control de presupuesto"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+aipipe = "aipipe.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aipipe = ["templates/*", "templates/agents/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
