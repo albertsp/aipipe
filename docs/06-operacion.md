@@ -95,6 +95,9 @@ cuando y, si difieren, anota la diferencia con `aipipe budget --add-usd <importe
 
 ### aipipe
 
+Si aipipe está en GitHub ([08-github-y-servicio.md](08-github-y-servicio.md)), la forma normal es `bash ~/work/aipipe/deploy/update.sh`
+(trae `main`, pasa los tests y solo entonces instala) y reiniciar el servicio. Lo de abajo es la vía manual con el zip.
+
 ```powershell
 # [PC] desde la carpeta donde esté aipipe.zip
 scp aipipe.zip albert@100.65.115.105:/tmp/

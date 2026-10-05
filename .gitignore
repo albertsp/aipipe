@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+venv/
+# Configuracion local del runner: no se versiona (un PR no debe poder cambiar el sandbox ni el equipo de Linear)
+.aipipe.toml

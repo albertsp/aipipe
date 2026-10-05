@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aipipe"
-version = "0.5.0"
+version = "0.5.1"
 description = "Pipeline Linear -> OpenCode (Go) con router de modelos, agentes por rol y control de presupuesto"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,3 +24,5 @@ aipipe = ["templates/*", "templates/agents/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Los tests deben importar el codigo de ESTE arbol (p. ej. el worktree de un ticket), no una copia instalada con pip.
+pythonpath = ["src"]

@@ -8,7 +8,7 @@ repositorios reales o GitHub. La versión de trabajo vive en Linear (ALB-21).
 > **En una frase:** hoy aipipe es seguro de usar sobre **repositorios de prueba sin valor**, con tickets tuyos. Antes de
 > usarlo en proyectos reales hay que cerrar las mejoras marcadas «Antes de uso real» de la tabla «Pendiente». Desde la
 > 0.5.0 los agentes corren en un **sandbox** que les oculta la clave de Linear (ALB-27); ese sandbox está probado en
-> desarrollo, pero **hay que validarlo en el servidor** con `aipipe sandbox-check`.
+> desarrollo, pero **validado en el servidor** (5-oct-2026) con `aipipe sandbox-check` y un ticket real.
 
 ## Qué se protege y de qué
 
@@ -74,8 +74,8 @@ repositorios reales o GitHub. La versión de trabajo vive en Linear (ALB-21).
 
 Estos son los puntos débiles conocidos. No los ignores.
 
-1. **El agente podía leer las claves de Linear y de GitHub (hallazgo principal, ALB-21). Corregido en la 0.5.0, falta
-   validarlo en el servidor.** Antes, el implementador corría con el mismo usuario que el runner y una copia completa del
+1. **El agente podía leer las claves de Linear y de GitHub (hallazgo principal, ALB-21). Corregido en la 0.5.0 y
+   validado en el servidor.** Antes, el implementador corría con el mismo usuario que el runner y una copia completa del
    entorno: `env`, `cat /proc/$PPID/environ` o `cat ~/.config/aipipe/env` le daban la clave. Ahora corre dentro de un
    sandbox, sin esas rutas ni esos procesos. **Solo protege si `sandbox.mode = "bwrap"`** (con `"off"` o con `"auto"` sin
    bubblewrap el riesgo sigue ahí) y mientras el kernel permita los espacios de nombres de usuario. Es aislamiento por
@@ -103,7 +103,7 @@ Cada punto tiene su issue en Linear.
 
 | # | Mejora | Issue | Cuándo |
 |---|---|---|---|
-| 1 | Agentes y tests sin acceso a las claves de Linear y GitHub: sandbox (bubblewrap) y entorno por lista blanca | ALB-27 | **Implementado en la 0.5.0; falta validarlo en el VPS** (`aipipe sandbox-check` y un ticket real) |
+| 1 | Agentes y tests sin acceso a las claves de Linear y GitHub: sandbox (bubblewrap) y entorno por lista blanca | ALB-27 | **Hecho en la 0.5.0 y validado en el VPS** |
 | 2 | Credencial de Linear con alcance mínimo (app OAuth o usuario de servicio) | ALB-28 | **Antes de uso real** |
 | 3 | Regla de «el ticket son datos» en todos los prompts, prueba con una instrucción maliciosa y criterio para usar `ai:approve` | ALB-29 | **Antes de uso real** |
 | 4 | Pasar de «bash permitido salvo denegados» a una lista de comandos permitidos, configurable por proyecto | ALB-30 | Después |

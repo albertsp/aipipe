@@ -17,7 +17,7 @@ Linear (etiqueta ai-ready, estado Todo)
   → comentario + estado «In Review» en Linear → gasto anotado en el ledger local
 ```
 
-## Estado del proyecto (5-oct-2026, versión 0.5.0)
+## Estado del proyecto (5-oct-2026, versión 0.5.1)
 
 | | |
 |---|---|
@@ -26,7 +26,7 @@ Linear (etiqueta ai-ready, estado Todo)
 | Validado en real: punto de control (5-oct-2026) | ALB-33 con `ai:approve`: plan comentado en Linear → `aprobado` desde el móvil → implementación en tier *standard* (`kimi-k2.7-code`), tests y revisión aprobados en 1 intento, ≈ 0,028 $ en total; el diff era correcto (con test del caso de división por cero) |
 | Validado en real: cancelación (5-oct-2026) | Sacar la issue de *In Progress* mientras corre detiene la ejecución |
 | **Aún sin validar en real** | Pausa por presupuesto, `push` + PR con `gh`, `watch` como servicio systemd, tier *heavy*, CodeGraph y Graft |
-| Implementado, **sin validar aún en el VPS** (0.5.0) | Sandbox (bubblewrap) y entorno por lista blanca: los agentes y los tests no ven la clave de Linear ni las credenciales de GitHub (ALB-27). Probado con bubblewrap real en desarrollo; falta `aipipe sandbox-check` y un ticket real en el servidor |
+| Validado en real: sandbox (5-oct-2026, 0.5.0) | Sandbox (bubblewrap) y entorno por lista blanca: los agentes y los tests no ven la clave de Linear ni las credenciales de GitHub (ALB-27). `aipipe sandbox-check --opencode` en verde y un ticket real con `sandbox.mode = "bwrap"` |
 | **Pendiente de seguridad** | Clave de Linear con alcance mínimo (ALB-28), regla anti-inyección en todos los prompts (ALB-29), lista de comandos permitidos (ALB-30) y salida de red limitada (ALB-31). Ver [seguridad](docs/05-seguridad.md) |
 
 Usa aipipe de momento **solo sobre repositorios de prueba** hasta cerrar lo pendiente de seguridad.
@@ -54,6 +54,7 @@ En Linear: crea la etiqueta `ai-ready`, ponla en un ticket en estado **Todo** y 
 | [Instalación en un VPS](docs/02-instalacion-vps.md) | De un servidor vacío a aipipe funcionando: SSH, cortafuegos, Tailscale, OpenCode, aipipe |
 | [Configuración y comandos](docs/03-configuracion.md) | Todas las claves de `.aipipe.toml`, comandos, códigos de salida, rutas y variables |
 | [Arquitectura](docs/04-arquitectura.md) | Cómo funciona por dentro, ciclo de vida de un ticket y decisiones de diseño |
+| [GitHub, PR y servicio](docs/08-github-y-servicio.md) | Trabajar sobre un repositorio real: push, PR, revisión desde el móvil, servicio y actualización |
 | [Seguridad](docs/05-seguridad.md) | Modelo de amenazas, qué protege aipipe y qué no, y la lista de pendientes |
 | [Operación](docs/06-operacion.md) | Runbook: arrancar, parar, servicio systemd, rotar claves, actualizar, copias |
 | [Solución de problemas](docs/07-solucion-de-problemas.md) | Síntomas reales y su arreglo |

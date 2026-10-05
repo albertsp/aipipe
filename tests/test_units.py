@@ -224,3 +224,32 @@ def test_run_agent_pins_working_directory(monkeypatch, tmp_path):
     opencode.run_agent(cfgmod.load(tmp_path), "aipipe-impl-std", "x", wt, "standard")
     assert seen["cwd"] == wt and seen["env"]["PWD"] == str(wt)
     assert seen["cmd"][seen["cmd"].index("--dir") + 1] == str(wt)
+
+
+def test_tests_import_this_checkout_not_an_installed_copy():
+    """Si aipipe esta instalado con pip, los tests (y los agentes que modifican aipipe) probarian la copia instalada en vez
+    del worktree. pyproject fija pythonpath = src para evitarlo."""
+    from pathlib import Path
+
+    import aipipe
+
+    assert Path(aipipe.__file__).resolve().is_relative_to(Path(__file__).resolve().parents[1] / "src")
+
+
+def test_doctor_reports_delivery_settings(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    from aipipe import cli
+
+    monkeypatch.setenv("AIPIPE_HOME", str(tmp_path / "h"))
+    r = tmp_path / "proj"
+    r.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=r, check=True)
+    (r / ".aipipe.toml").write_text('[linear]\nteam = "ENG"\n[project]\npush = true\npr = false\n')
+    monkeypatch.chdir(r)
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "entrega: push activo pero el repositorio NO tiene remoto" in out and "[ERR]" in out
+    subprocess.run(["git", "remote", "add", "origin", str(tmp_path / "x.git")], cwd=r, check=True)
+    cli.main(["doctor"])
+    assert "remoto origin configurado" in capsys.readouterr().out

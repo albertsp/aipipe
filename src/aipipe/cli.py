@@ -90,6 +90,18 @@ def cmd_doctor(args) -> int:
     line(None if shutil.which("gh") else False if cfg["project"]["pr"] else None,
          "gh (GitHub CLI) " + ("disponible" if shutil.which("gh") else "no encontrado: solo necesario si project.pr=true"))
     line((cfg.root / ".git").exists(), f"proyecto git: {cfg.root}")
+    proj = cfg["project"]
+    remote = gitops.has_remote(cfg.root) if (cfg.root / ".git").exists() else False
+    if proj["push"]:
+        line(remote, "entrega: push activo " + ("(remoto origin configurado)" if remote else "pero el repositorio NO tiene remoto (git remote add origin ...)"))
+    else:
+        line(None, "entrega: push desactivado (las ramas se quedan en el servidor)")
+    if proj["pr"] and proj["push"]:
+        if shutil.which("gh"):
+            ok = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, stdin=subprocess.DEVNULL).returncode == 0
+            line(ok, "gh autenticado (se abriran PR)" if ok else "gh NO esta autenticado: `gh auth login --with-token` (ver docs/08-github-y-servicio.md)")
+    elif proj["pr"]:
+        line(None, "project.pr = true no hace nada sin project.push = true")
     line(bool(cfg.sources), "configuracion: " + (", ".join(str(s) for s in cfg.sources) if cfg.sources else "ninguna; ejecuta `aipipe init`"))
     line(bool(cfg["linear"]["team"]), f"linear.team = '{cfg['linear']['team']}'")
     import os
