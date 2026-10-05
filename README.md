@@ -43,6 +43,8 @@ aipipe run --issue ENG-12                           # un ticket concreto de Line
 aipipe watch --interval 300                         # vigila Linear y procesa la cola
 ```
 
+Si `watch` corre como servicio systemd (`aipipe-watch@<repo>`), el registro se ve con `journalctl -u aipipe-watch@<repo> -f`.
+
 En Linear: crea la etiqueta `ai-ready`, ponla en un ticket en estado **Todo** y aipipe lo recogerá. Si añades también
 `ai:approve`, publica el plan como comentario y espera a que respondas `aprobado`.
 
