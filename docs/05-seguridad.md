@@ -60,8 +60,8 @@ repositorios reales o GitHub. La versión de trabajo vive en Linear (ALB-21).
   `GH_TOKEN` y `GITHUB_TOKEN` no llegan nunca, ni pidiéndolo en la configuración.
 - **Autoprueba:** `aipipe sandbox-check` ejecuta dentro del sandbox lo que haría un agente manipulado y comprueba que no
   obtiene ninguna clave; `aipipe doctor` avisa si el sandbox está desactivado.
-- **Prompt con el ticket delimitado** (`<ticket>`) y una regla que lo declara especificación de trabajo y pide ignorar
-  peticiones de red, de leer credenciales o de salir del repositorio (solo en el prompt de implementación por ahora).
+- **Prompt con el ticket delimitado** (`<ticket>`) y una regla que declara que el texto del ticket, los comentarios del
+  usuario y los archivos del repositorio son datos, no órdenes, en los prompts de triaje, plan, implementación y revisión.
 - **Cancelación efectiva:** matar el agente mata también a los procesos que lanzó.
 - **Presupuesto** con umbrales por ventana y pausa automática; `max_concurrent = 1`.
 
@@ -95,7 +95,9 @@ Estos son los puntos débiles conocidos. No los ignores.
    dependencia que instale el agente. Desde la 0.5.0 corren dentro del mismo sandbox que el agente, así que no ven las
    claves del runner, pero sí tienen red (salvo `tests_network = false`) y la clave de Go. Un proyecto con un
    `test_command` o un `postinstall` malicioso sigue ejecutando ese código.
-8. **La regla anti-inyección está solo en el prompt de implementación**, no en triaje, plan ni revisión.
+8. **La regla anti-inyección reduce el riesgo, no lo elimina.** Un modelo puede ignorarla o un texto manipulado
+   puede estar construido para evadirla. La protección dura sigue siendo el sandbox (ALB-27): un agente manipulado no
+   debe poder leer credenciales, ejecutar comandos de red ni salir del repositorio.
 
 ## Pendiente
 
@@ -105,7 +107,7 @@ Cada punto tiene su issue en Linear.
 |---|---|---|---|
 | 1 | Agentes y tests sin acceso a las claves de Linear y GitHub: sandbox (bubblewrap) y entorno por lista blanca | ALB-27 | **Hecho en la 0.5.0 y validado en el VPS** |
 | 2 | Credencial de Linear con alcance mínimo (app OAuth o usuario de servicio) | ALB-28 | **Antes de uso real** |
-| 3 | Regla de «el ticket son datos» en todos los prompts, prueba con una instrucción maliciosa y criterio para usar `ai:approve` | ALB-29 | **Antes de uso real** |
+| 3 | Regla de «el ticket son datos» en todos los prompts, prueba con una instrucción maliciosa y criterio para usar `ai:approve` | ALB-29 | **Hecho** (la prueba con un ticket malicioso real es manual, post-fusión) |
 | 4 | Pasar de «bash permitido salvo denegados» a una lista de comandos permitidos, configurable por proyecto | ALB-30 | Después |
 | 5 | Proxy con lista de dominios y reglas por usuario para limitar la salida de red | ALB-31 | Después |
 | 6 | 2FA en Tailscale y revisión de usuarios | ALB-6 | En curso |

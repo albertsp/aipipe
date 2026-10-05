@@ -7,8 +7,10 @@ from aipipe.budget import Budget, fractions
 from aipipe.gitops import slugify
 from aipipe.ledger import Entry, Ledger
 from aipipe.opencode import extract_text, extract_usage, parse_events
+from aipipe.pipeline import UNTRUSTED_INPUT, impl_prompt, plan_prompt, review_prompt, triage_prompt
 from aipipe.pricing import Tokens, deepseek_off_peak, estimate_cost, price_for
 from aipipe.router import check_models, parse_json_block, route
+from aipipe.tickets import Ticket
 
 
 # ---- precios ----------------------------------------------------------------
@@ -234,6 +236,19 @@ def test_tests_import_this_checkout_not_an_installed_copy():
     import aipipe
 
     assert Path(aipipe.__file__).resolve().is_relative_to(Path(__file__).resolve().parents[1] / "src")
+
+
+def test_untrusted_input_rule_in_all_prompts():
+    t = Ticket(identifier="ALB-TEST", title="Test", description="Desc")
+    prompts = [
+        triage_prompt(t),
+        plan_prompt(t),
+        plan_prompt(t, feedback="cambia esto", previous="plan anterior"),
+        impl_prompt(t, "plan", "feedback"),
+        review_prompt(t, "diff"),
+    ]
+    for prompt in prompts:
+        assert UNTRUSTED_INPUT in prompt
 
 
 def test_doctor_reports_delivery_settings(tmp_path, monkeypatch, capsys):
