@@ -91,11 +91,14 @@ def cmd_doctor(args) -> int:
          "gh (GitHub CLI) " + ("disponible" if shutil.which("gh") else "no encontrado: solo necesario si project.pr=true"))
     line((cfg.root / ".git").exists(), f"proyecto git: {cfg.root}")
     proj = cfg["project"]
-    remote = gitops.has_remote(cfg.root) if (cfg.root / ".git").exists() else False
+    remote = gitops.remote_name(cfg.root) if (cfg.root / ".git").exists() else False
     if proj["push"]:
-        line(remote, "entrega: push activo " + ("(remoto origin configurado)" if remote else "pero el repositorio NO tiene remoto (git remote add origin ...)"))
+        if remote:
+            line(True, f"entrega: push activo, base={proj['base_branch']}, remoto={remote}")
+        else:
+            line(False, f"entrega: push activo, base={proj['base_branch']} pero el repositorio NO tiene remoto (git remote add origin ...)")
     else:
-        line(None, "entrega: push desactivado (las ramas se quedan en el servidor)")
+        line(None, f"entrega: push desactivado (base={proj['base_branch']})")
     if proj["pr"] and proj["push"]:
         if shutil.which("gh"):
             ok = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, stdin=subprocess.DEVNULL).returncode == 0

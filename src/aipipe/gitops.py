@@ -42,6 +42,11 @@ def has_remote(root: Path) -> bool:
     return bool(git(["remote"], root, check=False).stdout.strip())
 
 
+def remote_name(root: Path) -> str:
+    remotes = git(["remote"], root, check=False).stdout.splitlines()
+    return remotes[0].strip() if remotes else ""
+
+
 def base_ref(cfg: dict) -> str:
     root = cfg.root
     base = cfg["project"]["base_branch"]

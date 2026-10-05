@@ -245,11 +245,41 @@ def test_doctor_reports_delivery_settings(tmp_path, monkeypatch, capsys):
     r = tmp_path / "proj"
     r.mkdir()
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=r, check=True)
-    (r / ".aipipe.toml").write_text('[linear]\nteam = "ENG"\n[project]\npush = true\npr = false\n')
+    (r / ".aipipe.toml").write_text('[linear]\nteam = "ENG"\n[project]\nbase_branch = "develop"\npush = true\npr = false\n')
     monkeypatch.chdir(r)
     cli.main(["doctor"])
     out = capsys.readouterr().out
-    assert "entrega: push activo pero el repositorio NO tiene remoto" in out and "[ERR]" in out
+    assert "entrega: push activo, base=develop pero el repositorio NO tiene remoto" in out and "[ERR]" in out
     subprocess.run(["git", "remote", "add", "origin", str(tmp_path / "x.git")], cwd=r, check=True)
     cli.main(["doctor"])
-    assert "remoto origin configurado" in capsys.readouterr().out
+    assert "entrega: push activo, base=develop, remoto=origin" in capsys.readouterr().out
+
+
+def test_doctor_reports_base_branch_and_remote(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    from aipipe import cli
+
+    monkeypatch.setenv("AIPIPE_HOME", str(tmp_path / "h"))
+    r = tmp_path / "proj"
+    r.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=r, check=True)
+    (r / ".aipipe.toml").write_text('[linear]\nteam = "ENG"\n[project]\nbase_branch = "develop"\npush = true\npr = false\n')
+    monkeypatch.chdir(r)
+
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "base=" in out
+    assert "NO tiene remoto" in out
+
+    subprocess.run(["git", "remote", "add", "origin", str(tmp_path / "x.git")], cwd=r, check=True)
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "base=" in out
+    assert "remoto=origin" in out
+
+    (r / ".aipipe.toml").write_text('[linear]\nteam = "ENG"\n[project]\nbase_branch = "develop"\npush = false\npr = false\n')
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "base=" in out
+    assert "push desactivado" in out
