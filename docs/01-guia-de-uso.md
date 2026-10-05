@@ -285,3 +285,19 @@ En Linear, la issue pasó de *Todo* a *In Progress* y a *In Review* en unos 5 mi
 
 Fíjate en que el triaje clasificó el ticket como trivial (complejidad 1) y por eso **no hubo plan**. Para forzar un plan
 y la aprobación, el ticket necesita `ai:approve`.
+
+## 14. Modo interactivo (`aipipe tui`)
+
+Si prefieres no recordar los subcomandos, instala el extra `tui` y lanza el menú interactivo:
+
+```bash
+pip install aipipe[tui]
+aipipe tui
+```
+
+Navega con las flechas, confirma con **Enter** y vuelve al menú con **Enter** tras cada acción. **R** refresca la cabecera
+(versión, ruta del proyecto, rama actual y estado rápido del presupuesto) y **Q** sale.
+
+Las opciones ejecutan los mismos comandos que ya conoces (`doctor`, `run --dry-run`, `budget`, `watch`...), así que la TUI
+no reemplaza la lógica, solo la presenta de forma más cómoda. Si `prompt-toolkit` no está instalado, `aipipe tui` muestra
+un mensaje claro indicando cómo instalar el extra.
