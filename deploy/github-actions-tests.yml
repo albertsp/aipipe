@@ -1,0 +1,45 @@
+# CI de ejemplo: tests completos (incluidos los de seguridad con bubblewrap).
+# Copiar manualmente a .github/workflows/tests.yml desde la web de GitHub.
+# El token del agente NO tiene permiso workflow, así que un PR no puede crear
+# ni modificar workflows.
+name: tests
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
+      - name: Instalar el paquete
+        run: pip install -e ".[dev]"
+
+      - name: Comprobar que los tests de seguridad no se saltan
+        # Si el runner bloquea los espacios de nombres de usuario sin privilegios,
+        # bubblewrap fallará y pytest marcará los tests de test_sandbox.py como SKIPPED.
+        # En ese caso se puede probar a habilitarlas en el kernel con:
+        #   sudo sysctl kernel.unprivileged_userns_clone=1
+        # o usar un runner/auto-hospedado con una imagen que permita user namespaces.
+        run: |
+          python -m pytest -rs tests/test_sandbox.py | tee pytest.log
+          if grep -q SKIPPED pytest.log; then
+            echo "ERROR: tests de seguridad saltados (probablemente bubblewrap sin user namespaces)"
+            exit 1
+          fi
+
+      - name: Ejecutar la suite completa
+        run: python -m pytest -q

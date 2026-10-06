@@ -188,9 +188,56 @@ hay que hacer nada para que «se vayan actualizando».
 
 - **Fusión automática:** no existe. Si algún día se añade, será solo para cambios de bajo riesgo y con los tests de
   seguridad en una integración continua fuera del servidor.
-- **Integración continua:** los tests de seguridad no pueden correr dentro del sandbox (necesitan bubblewrap). Un flujo de
-  GitHub Actions que los ejecute en cada PR sería un buen siguiente paso (añadir `.github/workflows` requiere permiso
-  `workflow`, que el token **no** debe tener: se añade a mano desde la web).
+- **Integración continua:** [§10](#10-github-actions-tests-completos-en-cada-pr) describe el flujo de ejemplo para ejecutar
+  la suite completa (incluidos los tests de seguridad con bubblewrap) en cada PR y push a `main`. Se añade a mano desde la
+  web porque `.github/workflows` requiere permiso `workflow`, que el token **no** debe tener.
 - **Seguridad pendiente:** [05-seguridad.md](05-seguridad.md) (ALB-28 a 31). Con repositorios privados y sin secretos, el
   riesgo restante es código malicioso en un PR (por eso lo revisas) y filtración de lo que haya en el código por la red
   (por eso no debe haber secretos).
+
+## 10. GitHub Actions: tests completos en cada PR
+
+El archivo `deploy/github-actions-tests.yml` es una plantilla de flujo de trabajo que ejecuta la suite completa, incluidos
+los tests de seguridad que usan `bubblewrap`, en un entorno limpio de GitHub. El token del agente **no** tiene permiso
+`workflow`, así que un PR no puede crear ni modificar `.github/workflows`: Albert lo copia a mano desde la web.
+
+### 10.1 Añadir el workflow desde GitHub
+
+1. Ve al repositorio en GitHub.
+2. *Add file → Create new file*.
+3. Ruta: `.github/workflows/tests.yml`.
+4. Copia el contenido completo de `deploy/github-actions-tests.yml` y pégalo.
+5. Commit directamente en `main`.
+
+### 10.2 Exigir el check en los PR
+
+Para que un PR no se pueda fusionar sin que pase el flujo:
+
+1. *Settings → Rules → Rulesets* (o *Branch protection rules* en planes antiguos).
+2. Selecciona o crea la regla para la rama `main`.
+3. Activa *Require status checks to pass before merging*.
+4. Añade el check `test` (el nombre del job en el workflow).
+
+### 10.3 Qué hace el flujo
+
+- Se dispara en cada `pull_request` y en cada `push` a `main`.
+- Corre en `ubuntu-latest`.
+- Instala Python 3.11+, `bubblewrap` y el paquete con `pip install -e ".[dev]"`.
+- Ejecuta primero `tests/test_sandbox.py` y **falla** si aparece `SKIPPED` en la salida, para asegurar que los tests de
+  seguridad no se han saltado por falta de `user namespaces` en el runner.
+- Finalmente ejecuta `python -m pytest -q` para la suite completa.
+
+### 10.4 Si bubblewrap falla por user namespaces
+
+Algunos ejecutores de GitHub (especialmente auto-hospedados o kernels personalizados) deshabilitan los espacios de
+nombres de usuario sin privilegios, lo que hace que `bubblewrap` falle y pytest marque los tests de `test_sandbox.py` como
+saltados. El flujo documenta dos opciones en su propia cabecera:
+
+- Habilitar `user namespaces` con `sudo sysctl kernel.unprivileged_userns_clone=1` (si el runner lo permite).
+- Cambiar a una imagen o runner que sí los permita (por ejemplo, `ubuntu-latest` suele funcionar).
+
+### 10.5 Mantener sincronizado el flujo
+
+Cuando quieras cambiar el CI, edita siempre `deploy/github-actions-tests.yml` en un PR normal y luego replica el archivo
+a `.github/workflows/tests.yml` desde la web. Así el agente nunca necesita permiso `workflow` y la revisión humana ve el
+diff antes de que el workflow se actualice.
