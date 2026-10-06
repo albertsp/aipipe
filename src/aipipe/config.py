@@ -12,15 +12,20 @@ PROJECT_FILE = ".aipipe.toml"
 # Comandos que un agente de implementacion puede ejecutar por defecto (patrones glob de OpenCode, se les anade "*"
 # al renderizar). Se amplia por proyecto con [project].bash_allow y con el primer token del test_command. Es una lista
 # blanca: todo lo demas queda denegado. Consulta docs/05-seguridad.md antes de tocar esto.
+#
+# Aviso: la lista blanca tiene resquicios por diseno. `find`, `sed`, `awk`, `make`, `npm`, `pip` y `python script.py`
+# (o `node script.js`) siguen pudiendo ejecutar codigo del proyecto; el cinturon `deny` de la plantilla solo cierra las
+# formas inline mas obvias (`python -c`, `python3 -c`, `node -e`, `bash -c`, `sh -c`, `find * -exec`). La proteccion dura
+# es el sandbox (docs/05-seguridad.md) y, cuando llegue, el proxy de red (ALB-31).
 DEFAULT_BASH_ALLOW: list[str] = [
     # lectura / exploracion
     "cat", "ls", "head", "tail", "grep", "find", "sed", "awk", "wc", "sort", "diff",
-    "file", "tree", "echo", "printf", "tr", "cut", "xargs", "jq",
+    "file", "tree", "echo", "printf", "tr", "cut", "jq",
     # git de lectura y preparacion (nada de commit/push/reset: lo hace el orquestador)
     "git status", "git diff", "git log", "git show", "git add",
     # ejecutables comunes
     "python", "python3", "pytest", "pip", "uv", "node", "npm", "pnpm", "npx", "yarn",
-    "ruff", "eslint", "make", "bash", "sh",
+    "ruff", "eslint", "make",
 ]
 
 DEFAULTS: dict = {

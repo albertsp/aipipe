@@ -87,11 +87,12 @@ Estos son los puntos débiles conocidos. No los ignores.
 3. **La clave de Linear tiene alcance total.** Una API key personal no se puede limitar. Existen apps OAuth con alcances
    más estrechos, pendiente de investigar.
 4. **Una lista blanca de comandos tiene fugas menores por diseño.** Desde la 0.6.0 el implementador usa `*: deny` y solo
-   puede ejecutar lo listado (ver «Lista de comandos permitidos»). Aun así, `python`, `node`, `bash` y `sh` permitidos
-   con argumentos (p. ej. `python script.py`) son ejecución de código arbitrario del proyecto; solo se deniegan las
-   formas inline más obvias (`python -c`, `node -e`, `bash -c`). Y el patrón se compara contra el **primer** comando: un
-   agente manipulado con `make` (que ejecuta lo que diga el Makefile) o con un binario propio puede saltarse la lista.
-   La protección dura sigue siendo el sandbox (punto 1) y, cuando llegue, el proxy de red (ALB-31).
+   puede ejecutar lo listado (ver «Lista de comandos permitidos»). Aun así, `python`, `python3`, `node`, `find`, `sed`,
+   `awk`, `make`, `npm` y `pip` permitidos con argumentos (p. ej. `python script.py`) son ejecución de código arbitrario
+   del proyecto; solo se deniegan las formas inline más obvias (`python -c`, `python3 -c`, `node -e`, `bash -c`, `sh -c`,
+   `find * -exec`). Y el patrón se compara contra el **primer** comando: un agente manipulado con `make` (que ejecuta lo
+   que diga el Makefile) o con un binario propio puede saltarse la lista. La protección dura sigue siendo el sandbox
+   (punto 1) y, cuando llegue, el proxy de red (ALB-31).
 5. **Salida de red sin restringir.** `ufw` filtra por puertos, no por dominios; un agente manipulado podría enviar datos fuera.
 6. **Se comprueba quién creó la issue, no quién la editó.** Si compartes el workspace, restringe también quién puede
    editar tus issues y ponerles `ai-ready`.
@@ -111,11 +112,11 @@ entrada es un patrón glob de OpenCode al que se le añade `*` (para permitir ar
 **Por defecto** (en el código, `DEFAULT_BASH_ALLOW`):
 
 - **Lectura/exploración:** `cat`, `ls`, `head`, `tail`, `grep`, `find`, `sed`, `awk`, `wc`, `sort`, `diff`, `file`,
-  `tree`, `echo`, `printf`, `tr`, `cut`, `xargs`, `jq`.
+  `tree`, `echo`, `printf`, `tr`, `cut`, `jq`.
 - **Git de lectura y preparación:** `git status`, `git diff`, `git log`, `git show`, `git add`. Nada de commit, push,
   checkout, reset, clean, rebase ni merge: lo hace el orquestador.
 - **Ejecutables comunes:** `python`, `python3`, `pytest`, `pip`, `uv`, `node`, `npm`, `pnpm`, `npx`, `yarn`, `ruff`,
-  `eslint`, `make`, `bash`, `sh`.
+  `eslint`, `make`.
 
 A esto se añade, por proyecto, el primer token del `test_command` (p. ej. `pytest` o `npm`) y lo que pongas en
 `[project].bash_allow`. Ejemplo en `.aipipe.toml`:
@@ -126,9 +127,27 @@ test_command = "pytest -q"
 bash_allow = ["mypy", "black"]
 ```
 
-**Qué queda fuera** (denegado siempre, aunque lo añadas a `bash_allow`): red (`curl`, `wget`, `ssh`, `scp`),
-destructivos (`rm -rf`, `sudo`) y ejecución arbitraria inline (`python -c`, `node -e`, `perl`, `bash -c`, `sh -c`).
-Tampoco están los comandos de git que escriben historia.
+## Cinturón deny
+
+La plantilla del implementador renderiza `bash:` en este orden: primero `"*": deny` (todo denegado por defecto), después
+el bloque `allow` (la lista blanca de arriba más `[project].bash_allow` y el `test_command`), y **por último** el bloque
+`deny`. OpenCode evalúa los permisos con «gana la última regla que coincide», así que el `deny` final se impone al
+`allow` aunque un proyecto intente re-añadir un comando denegado (ALB-42).
+
+**Denegado siempre**, aunque lo añadas a `[project].bash_allow`:
+
+- Red: `curl`, `wget`, `ssh`, `scp`.
+- Destructivos/privilegio: `rm -rf`, `sudo`.
+- Ejecución arbitraria inline: `python -c`, `python3 -c`, `node -e`, `perl`, `bash -c`, `sh -c`, `find * -exec`.
+- Git que escribe historia: `git push`, `git commit`, `git checkout`, `git switch`, `git reset`, `git clean`,
+  `git rebase`, `git merge`.
+
+`bash`, `sh` y `xargs` ya no están en la lista blanca por defecto; si un proyecto los necesita, los añade en
+`[project].bash_allow` (y en ese caso pasan a ser, otra vez, ejecución de código arbitrario).
+
+**Límites reales:** la lista blanca y el cinturón `deny` no son una defensa completa. `find`, `sed`, `awk`, `make`,
+`npm`, `pip` y `python script.py` (o `node script.js`) siguen pudiendo ejecutar código del proyecto; solo se cierran las
+formas inline más obvias. La protección dura es el sandbox (punto 1) y, cuando llegue, el proxy de red (ALB-31).
 
 **Cómo ampliarla:** añade el comando a `[project].bash_allow` y ejecuta `aipipe install-agents --force`. Mantén la
 lista corta: todo lo que permitas es código que un agente manipulado puede ejecutar. La lista blanca es solo una capa;
