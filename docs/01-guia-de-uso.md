@@ -286,18 +286,38 @@ En Linear, la issue pasó de *Todo* a *In Progress* y a *In Review* en unos 5 mi
 Fíjate en que el triaje clasificó el ticket como trivial (complejidad 1) y por eso **no hubo plan**. Para forzar un plan
 y la aprobación, el ticket necesita `ai:approve`.
 
-## 14. Modo interactivo (`aipipe tui`)
+## 14. Panel de control (`aipipe tui`)
 
-Si prefieres no recordar los subcomandos, instala el extra `tui` y lanza el menú interactivo:
+En el VPS puedes abrir una sola pantalla que muestra el estado del runner y lanza las acciones habituales sin recordar
+subcomandos:
 
 ```bash
-pip install aipipe[tui]
+pip install aipipe[tui]   # solo la primera vez (instala prompt-toolkit)
 aipipe tui
 ```
 
-Navega con las flechas, confirma con **Enter** y vuelve al menú con **Enter** tras cada acción. **R** refresca la cabecera
-(versión, ruta del proyecto, rama actual y estado rápido del presupuesto) y **Q** sale.
+La TUI carga sola la clave desde `~/.config/aipipe/env` (no hace falta `source` a mano) y **nunca la muestra** en pantalla
+ni en el registro. Solo se usa por SSH: no abre puertos ni escucha en red.
 
-Las opciones ejecutan los mismos comandos que ya conoces (`doctor`, `run --dry-run`, `budget`, `watch`...), así que la TUI
-no reemplaza la lógica, solo la presenta de forma más cómoda. Si `prompt-toolkit` no está instalado, `aipipe tui` muestra
-un mensaje claro indicando cómo instalar el extra.
+Paneles:
+
+- **Estado:** servicio activo o en reposo, último sondeo, ticket en curso (fase, tier y coste hasta ahora) y cola `ai-ready`.
+- **Consumo:** las tres ventanas de Go (5 h, semana, mes) con barras.
+- **Cola y detalle:** tickets `ai-ready` y, al seleccionar uno, su descripción, plan propuesto y comentarios recientes.
+- **Registro en vivo:** la salida de las acciones y los últimos avisos (p. ej. un fallo de red de Linear, que se muestra
+  como aviso y no cierra la interfaz).
+
+Atajos:
+
+| Tecla | Acción |
+|---|---|
+| `↑` / `↓` | Seleccionar ticket de la cola |
+| `Enter` o `l` | Lanzar el ticket seleccionado (misma ruta que `aipipe run --issue ID`) |
+| `d` | Ejecutar `aipipe doctor` y ver el resultado |
+| `s` | Ejecutar `aipipe sandbox-check` y ver el resultado |
+| `r` | Refrescar los datos de Linear y del libro |
+| `?` | Ayuda |
+| `q` o `Ctrl+C` | Salir (no deja procesos huérfanos ni toca ningún ticket) |
+
+La TUI respeta `NO_COLOR` y se adapta al tamaño de la terminal. Fuera de alcance: aprobar/rechazar planes (se hace en
+Linear) y editar tickets.

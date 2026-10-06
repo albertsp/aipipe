@@ -235,6 +235,20 @@ Una pasada sobre la cola.
 Bucle que ejecuta `run` cada `--interval` segundos (por defecto 300). Si la cola se pausa por presupuesto, espera hasta la
 hora estimada de reanudación. Los errores de Linear se muestran y se reintenta. Se detiene con `Ctrl+C`.
 
+### `aipipe tui`
+
+Panel de control interactivo (estado del servicio, ticket en curso, cola `ai-ready`, consumo de Go, detalle de ticket y
+registro en vivo). Es un extra opcional:
+
+```bash
+pip install aipipe[tui]   # instala prompt-toolkit
+aipipe tui
+```
+
+Carga la clave de Linear desde `~/.config/aipipe/env` automáticamente y nunca la muestra. Atajos: `↑`/`↓` seleccionar,
+`Enter`/`l` lanzar el ticket, `d` doctor, `s` sandbox-check, `r` refrescar, `?` ayuda, `q`/`Ctrl+C` salir. Respeta `NO_COLOR`
+y muestra los fallos de Linear como aviso (no cierra la interfaz). No abre puertos ni escucha en red.
+
 ### Códigos de salida de `aipipe run`
 
 | Código | Significa |

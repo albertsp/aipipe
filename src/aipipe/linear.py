@@ -300,6 +300,12 @@ class LinearTracker:
             stateId=self._state_id(t.team_id, self.cfg["trigger_states"][0]),
         )
 
+    def comments(self, issue_id: str) -> list[dict]:
+        """Comentarios recientes de una issue (solo lectura; los usa la TUI para el panel de detalle)."""
+        data = self._gql(Q_COMMENTS, {"id": issue_id}, "IssueComments")
+        nodes = ((data.get("issue") or {}).get("comments") or {}).get("nodes", [])
+        return sorted(nodes, key=lambda n: n.get("createdAt") or "")
+
     def approval(self, t: Ticket, since: str, exclude_ids=()) -> Decision | None:
         """Primera respuesta decisiva (aprobado / cambios: ... / rechazado) posterior a `since`, escrita por alguien
         autorizado. Los comentarios de terceros se ignoran: aprobar equivale a mandar ejecutar codigo."""
