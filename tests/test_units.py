@@ -240,6 +240,19 @@ def test_tests_import_this_checkout_not_an_installed_copy():
     assert Path(aipipe.__file__).resolve().is_relative_to(Path(__file__).resolve().parents[1] / "src")
 
 
+def test_version_matches_pyproject():
+    """La version publicada (pyproject.toml) y __version__ deben coincidir (0.6.0)."""
+    import tomllib
+    from pathlib import Path
+
+    import aipipe
+
+    root = Path(__file__).resolve().parents[1]
+    with open(root / "pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+    assert pyproject["project"]["version"] == aipipe.__version__ == "0.6.0"
+
+
 def test_untrusted_input_rule_in_all_prompts():
     t = Ticket(identifier="ALB-TEST", title="Test", description="Desc")
     prompts = [

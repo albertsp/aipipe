@@ -17,7 +17,7 @@ Linear (etiqueta ai-ready, estado Todo)
   → comentario + estado «In Review» en Linear → gasto anotado en el ledger local
 ```
 
-## Estado del proyecto (5-oct-2026, versión 0.5.1)
+## Estado del proyecto (6-oct-2026, versión 0.6.0)
 
 | | |
 |---|---|
@@ -25,9 +25,12 @@ Linear (etiqueta ai-ready, estado Todo)
 | Validado con tests (79 siempre activos + 17 opcionales de esquema de Linear) | Router, presupuesto, bloqueos, cola, cancelación, punto de control, filtro de creador |
 | Validado en real: punto de control (5-oct-2026) | ALB-33 con `ai:approve`: plan comentado en Linear → `aprobado` desde el móvil → implementación en tier *standard* (`kimi-k2.7-code`), tests y revisión aprobados en 1 intento, ≈ 0,028 $ en total; el diff era correcto (con test del caso de división por cero) |
 | Validado en real: cancelación (5-oct-2026) | Sacar la issue de *In Progress* mientras corre detiene la ejecución |
-| **Aún sin validar en real** | Pausa por presupuesto, `push` + PR con `gh`, `watch` como servicio systemd, tier *heavy*, CodeGraph y Graft |
+| Validado en real: `push` + PR (6-oct-2026) | aipipe sube la rama `ai/*`, abre el PR con `gh` y deja el ticket en *In Review* con el enlace |
+| Validado en real: servicio systemd (6-oct-2026) | `aipipe-watch@<repo>` vigila Linear y sobrevive a reinicios y a cerrar la terminal (ALB-36) |
+| Validado en real: prompts anti-inyección y lista de comandos permitidos (6-oct-2026) | ALB-29 y ALB-30: el texto del ticket se trata como dato y el implementador solo ejecuta la lista blanca de bash |
 | Validado en real: sandbox (5-oct-2026, 0.5.0) | Sandbox (bubblewrap) y entorno por lista blanca: los agentes y los tests no ven la clave de Linear ni las credenciales de GitHub (ALB-27). `aipipe sandbox-check --opencode` en verde y un ticket real con `sandbox.mode = "bwrap"` |
-| **Pendiente de seguridad** | Clave de Linear con alcance mínimo (ALB-28), regla anti-inyección en todos los prompts (ALB-29), lista de comandos permitidos (ALB-30) y salida de red limitada (ALB-31). Ver [seguridad](docs/05-seguridad.md) |
+| **Aún sin validar en real** | Pausa por presupuesto, tier *heavy*, CodeGraph y Graft, TUI en el VPS (validada en local) y salida de red limitada (ALB-31) |
+| **Pendiente de seguridad** | Clave de Linear con alcance mínimo (ALB-28) y salida de red limitada (ALB-31). Ver [seguridad](docs/05-seguridad.md) |
 
 Usa aipipe de momento **solo sobre repositorios de prueba** hasta cerrar lo pendiente de seguridad.
 
@@ -72,6 +75,10 @@ aipipe install-agents          # agentes de OpenCode (globales)
 Requisitos en el `PATH`: `opencode` (con `opencode auth login` → OpenCode Go hecho), `git` y, solo si quieres PRs, `gh`
 autenticado. La clave de Linear va en la variable `LINEAR_API_KEY` (Linear → Settings → Account → Security & access →
 Personal API keys). Guía completa, incluido el servidor: [instalación en un VPS](docs/02-instalacion-vps.md).
+
+Para **actualizar** aipipe en el VPS: `bash ~/work/aipipe/deploy/update.sh`. El script reinstala el código, **vuelve a
+instalar los agentes** (`aipipe install-agents --force`) y muestra los avisos de `aipipe doctor`; después solo falta
+reiniciar el servicio: `sudo systemctl restart aipipe-watch@<repo>` (con la cola vacía o sin tickets en curso).
 
 > **Imprescindible para no pasar de 10 $:** en la consola de OpenCode deja **desactivado** «Use balance». Es la única
 > garantía dura. El control local de aipipe es una estimación a precio de lista.

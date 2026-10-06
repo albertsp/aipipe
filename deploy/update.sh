@@ -44,4 +44,14 @@ fi
 
 "$venv/bin/pip" install -q --upgrade --force-reinstall "$repo"
 echo "Instalado: $("$venv/bin/aipipe" --version)"
+
+echo "Reinstalando los agentes de OpenCode..."
+if ! "$venv/bin/aipipe" install-agents --force; then
+  echo "ERROR: no se pudieron reinstalar los agentes. Revisa la salida de arriba y repite con: aipipe install-agents --force" >&2
+  exit 1
+fi
+
+echo "Estado tras la actualizacion (solo avisos y errores de aipipe doctor):"
+"$venv/bin/aipipe" doctor | grep -E '^\[(ERR|-- )' || true
+
 echo "Falta reiniciar el servicio (como albert):  sudo systemctl restart aipipe-watch@<repo>"
