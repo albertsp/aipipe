@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+tui = ["prompt-toolkit>=3.0.46"]
 
 [project.scripts]
 aipipe = "aipipe.cli:main"

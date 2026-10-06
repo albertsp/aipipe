@@ -297,6 +297,12 @@ def cmd_sandbox_check(args) -> int:
     return 1 if bad else 0
 
 
+def cmd_tui(args) -> int:
+    from . import tui
+
+    return tui.main()
+
+
 # ---------------------------------------------------------------- parser
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aipipe", description="Linear -> OpenCode (Go) con router de modelos y presupuesto")
@@ -344,6 +350,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("watch", help="vigila Linear y procesa tickets en bucle")
     s.add_argument("--interval", type=int, default=300)
     s.set_defaults(fn=cmd_watch)
+
+    s = sub.add_parser("tui", help="lanza la interfaz interactiva en consola")
+    s.set_defaults(fn=cmd_tui)
     return p
 
 
