@@ -27,6 +27,10 @@ push = true
 pr = true                           # requiere GitHub CLI (gh) autenticado
 max_attempts = 3
 use_review = true
+# Comandos extra que el implementador puede ejecutar, ademas de los de la lista blanca por defecto (ver
+# docs/05-seguridad.md). El primer token de test_command se anade solo. Cada entrada es un patron glob de OpenCode;
+# manten la lista corta. Ejemplo: bash_allow = ["mypy", "black"]
+# bash_allow = []
 
 # Descomenta para sobrescribir modelos solo en este proyecto (luego: aipipe install-agents --project --force).
 # [models]
