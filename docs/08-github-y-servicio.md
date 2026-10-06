@@ -26,7 +26,9 @@ móvil: revisas el PR en la app de GitHub y lo fusionas (o pides cambios)
 
 ## 1. Crear el repositorio y el token (en GitHub, desde el móvil o el PC)
 
-1. **Repositorio privado y vacío** (sin README ni licencia): `albertsp/aipipe`.
+1. **Repositorio vacío** (sin README ni licencia): `albertsp/aipipe`. **Debe ser privado** (aipipe mueve tu código y, en el
+   servidor, convive con las claves): compruébalo en *Settings → General → Danger Zone → Change repository visibility*
+   (debe decir *Private*) y abriendo la URL del repositorio sin iniciar sesión (no debe verse).
 2. **Token de acceso fino** (*Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new
    token*):
    - *Resource owner:* tu usuario.
@@ -70,7 +72,7 @@ cd ~/aipipe
 git init -q -b main
 git add -A
 git status --short | head -30      # revisa: no debe haber __pycache__, claves ni archivos raros
-git commit -qm "aipipe 0.5.1: importación inicial"
+git commit -qm "aipipe 0.6.0: importación inicial"
 git remote add origin https://github.com/albertsp/aipipe.git
 git push -u origin main
 ```
@@ -118,8 +120,8 @@ Si algo falla: [07-solucion-de-problemas.md §8](07-solucion-de-problemas.md#8-r
 
 ## 6. Dejarlo corriendo solo (servicio systemd)
 
-La plantilla `deploy/aipipe-watch@.service` está **sin probar**: haz primero el paso 5 a mano y activa el servicio solo
-cuando funcione.
+La plantilla `deploy/aipipe-watch@.service` está **validada en el VPS** (ALB-36). Aun así, haz primero el paso 5 a mano
+para confirmar que el flujo funciona en tu repositorio antes de dejarlo corriendo solo.
 
 ```bash
 # [VPS albert]
@@ -179,7 +181,10 @@ sudo systemctl restart aipipe-watch@aipipe
 ```
 
 El script comprueba que estás en `main` y sin cambios locales, trae `origin/main`, pasa `pytest` con el código nuevo y solo
-entonces hace `pip install`. Si los tests fallan, el aipipe instalado no se toca.
+entonces hace `pip install`. Después **reinstala los agentes** (`aipipe install-agents --force`) y muestra los avisos y
+errores de `aipipe doctor`; si alguna de estas comprobaciones falla, el script falla y no oculta el error. Si los tests
+fallan, el aipipe instalado no se toca. Tras el script solo queda reiniciar el servicio (arriba, `sudo systemctl restart
+aipipe-watch@aipipe`).
 
 **Los demás repositorios** (los que aipipe desarrolla, no aipipe mismo) siempre parten del `origin/main` más reciente: no
 hay que hacer nada para que «se vayan actualizando».

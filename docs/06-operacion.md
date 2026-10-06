@@ -4,8 +4,8 @@ Manual del día a día del servidor: arrancar y parar el runner, rotar claves, a
 reinicio o un problema. Todo se hace como el usuario `albert` (con `sudo`) o como `aipipe` (sin sudo); cada bloque dice
 cuál. Para instalar desde cero, [02-instalacion-vps.md](02-instalacion-vps.md).
 
-> **Estado:** lo manual (`aipipe run`, `aipipe watch` a mano) está validado. **El servicio systemd es una plantilla sin
-> probar** (`deploy/aipipe-watch@.service`); pruébalo con un repositorio de prueba antes de fiarte de él.
+> **Estado:** lo manual (`aipipe run`, `aipipe watch` a mano) y el servicio systemd (`deploy/aipipe-watch@.service`) están
+> validados en el VPS (ALB-36).
 
 ## 1. Cómo se ejecuta aipipe
 
@@ -33,7 +33,7 @@ aipipe run --dry-run
 (`sudo apt install tmux` como `albert`; luego `tmux new -s aipipe` como `aipipe`, lanza `watch` y sal con `Ctrl+B D`;
 vuelves con `tmux attach -t aipipe`).
 
-## 2. Servicio systemd (plantilla sin probar)
+## 2. Servicio systemd
 
 El archivo `deploy/aipipe-watch@.service` define **una instancia por repositorio**: `aipipe-watch@sandbox` vigila
 `/home/aipipe/work/sandbox`.
@@ -99,7 +99,9 @@ cuando y, si difieren, anota la diferencia con `aipipe budget --add-usd <importe
 ### aipipe
 
 Si aipipe está en GitHub ([08-github-y-servicio.md](08-github-y-servicio.md)), la forma normal es `bash ~/work/aipipe/deploy/update.sh`
-(trae `main`, pasa los tests y solo entonces instala) y reiniciar el servicio. Lo de abajo es la vía manual con el zip.
+(trae `main`, pasa los tests, solo entonces instala, **reinstala los agentes** con `aipipe install-agents --force` y muestra
+los avisos/errores de `aipipe doctor`). Tras ejecutarlo, **reinicia el servicio** (`sudo systemctl restart aipipe-watch@<repo>`,
+con la cola vacía o sin tickets en curso). Lo de abajo es la vía manual con el zip.
 
 ```powershell
 # [PC] desde la carpeta donde esté aipipe.zip
