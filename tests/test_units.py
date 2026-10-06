@@ -298,3 +298,61 @@ def test_doctor_reports_base_branch_and_remote(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "base=" in out
     assert "push desactivado" in out
+
+
+# ---- lista blanca de bash de los agentes de implementacion (ALB-30) ---------------------------------
+IMPL_AGENTS = ["aipipe-impl-light.md", "aipipe-impl-std.md", "aipipe-impl-heavy.md"]
+
+
+def _render_impl(tmp_path, home, toml='[project]\ntest_command = ""\n'):
+    from aipipe import agents
+
+    p = tmp_path / "p"
+    p.mkdir(exist_ok=True)
+    (p / ".git").mkdir(exist_ok=True)
+    (p / ".aipipe.toml").write_text(toml)
+    return agents.render_all(cfgmod.load(p))
+
+
+def test_impl_agents_use_allowlist_not_denylist(home, tmp_path):
+    rendered = _render_impl(tmp_path, home)
+    for name in IMPL_AGENTS:
+        content = rendered[name]
+        assert '  bash:\n    "*": deny' in content
+        assert '"*": allow' not in content
+        for cmd in cfgmod.DEFAULT_BASH_ALLOW:
+            assert f'"{cmd}*": allow' in content
+        # cinturon: red, destructivos y ejecucion arbitraria siguen denegados
+        for deny in ("curl", "wget", "ssh", "scp", "sudo", "rm -rf", "python -c", "node -e", "perl",
+                     "git push", "git commit", "git checkout", "git reset", "git clean", "git rebase", "git merge"):
+            assert f'"{deny}*": deny' in content
+
+
+def test_project_bash_allow_extends_default(home, tmp_path):
+    rendered = _render_impl(tmp_path, home, '[project]\ntest_command = ""\nbash_allow = ["mypy"]\n')
+    std = rendered["aipipe-impl-std.md"]
+    assert '"mypy*": allow' in std
+    # un comando no listado no se permite
+    assert '"nc*": allow' not in std and '"git commit*": allow' not in std
+
+
+def test_test_command_first_token_is_auto_allowlisted(home, tmp_path):
+    rendered = _render_impl(tmp_path, home, '[project]\ntest_command = "tox -q"\n')
+    assert '"tox*": allow' in rendered["aipipe-impl-std.md"]
+
+
+def test_python_and_node_projects_keep_tests_and_lint(home, tmp_path):
+    py = _render_impl(tmp_path, home, '[project]\ntest_command = "pytest -q"\nbash_allow = ["ruff"]\n')["aipipe-impl-std.md"]
+    node = _render_impl(tmp_path, home, '[project]\ntest_command = "npm test --silent"\nbash_allow = ["eslint"]\n')["aipipe-impl-std.md"]
+    for cmd in ("pytest", "pip", "uv", "ruff", "python", "python3"):
+        assert f'"{cmd}*": allow' in py
+    for cmd in ("npm", "npx", "pnpm", "yarn", "eslint", "node"):
+        assert f'"{cmd}*": allow' in node
+
+
+def test_deny_rules_always_win_over_allowlist(home, tmp_path):
+    # aunque el proyecto anada estos comandos a bash_allow, el cinturon de denegados los mantiene fuera
+    rendered = _render_impl(tmp_path, home, '[project]\ntest_command = ""\nbash_allow = ["curl", "rm -rf", "git push", "bash -c"]\n')["aipipe-impl-std.md"]
+    for deny in ("curl", "rm -rf", "git push", "bash -c"):
+        assert f'"{deny}*": deny' in rendered
+        assert f'"{deny}*": allow' not in rendered

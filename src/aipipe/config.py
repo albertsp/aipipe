@@ -9,6 +9,20 @@ from .paths import global_config_path
 
 PROJECT_FILE = ".aipipe.toml"
 
+# Comandos que un agente de implementacion puede ejecutar por defecto (patrones glob de OpenCode, se les anade "*"
+# al renderizar). Se amplia por proyecto con [project].bash_allow y con el primer token del test_command. Es una lista
+# blanca: todo lo demas queda denegado. Consulta docs/05-seguridad.md antes de tocar esto.
+DEFAULT_BASH_ALLOW: list[str] = [
+    # lectura / exploracion
+    "cat", "ls", "head", "tail", "grep", "find", "sed", "awk", "wc", "sort", "diff",
+    "file", "tree", "echo", "printf", "tr", "cut", "xargs", "jq",
+    # git de lectura y preparacion (nada de commit/push/reset: lo hace el orquestador)
+    "git status", "git diff", "git log", "git show", "git add",
+    # ejecutables comunes
+    "python", "python3", "pytest", "pip", "uv", "node", "npm", "pnpm", "npx", "yarn",
+    "ruff", "eslint", "make", "bash", "sh",
+]
+
 DEFAULTS: dict = {
     "linear": {
         "team": "",
@@ -49,6 +63,7 @@ DEFAULTS: dict = {
         "base_branch": "main",
         "branch_prefix": "ai/",
         "test_command": "",
+        "bash_allow": [],  # comandos extra para la lista blanca del implementador (ademas de DEFAULT_BASH_ALLOW)
         "test_timeout_s": 900,
         "worktrees_dir": "",  # vacio = <datos de aipipe>/worktrees/<repo>
         "fetch": True,

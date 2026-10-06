@@ -129,13 +129,14 @@ ticket se marca como fallido con el motivo.
 |---|---|---|
 | `aipipe-triage` | Clasifica complejidad | Solo lectura, sin bash, sin web; 6 pasos |
 | `aipipe-plan` | Plan breve (≤ 12 líneas) | Solo lectura, sin bash, sin web; 12 pasos |
-| `aipipe-impl-light/std/heavy` | Implementa | Edita; bash permitido salvo una lista de denegados (`git push/commit/checkout/switch/reset/clean/rebase/merge`, `rm -rf`, `sudo`, `curl`, `wget`, `ssh`, `scp`); sin web ni subagentes; sin salir del directorio; 20 / 40 / 60 pasos según el tier (light / standard / heavy) |
+| `aipipe-impl-light/std/heavy` | Implementa | Edita; bash en lista blanca (`*: deny` + herramientas de lectura, gestor de paquetes, comando de tests y `git status/diff/add`; denegados siempre red, destructivos y ejecución arbitraria); sin web ni subagentes; sin salir del directorio; 20 / 40 / 60 pasos según el tier (light / standard / heavy) |
 | `aipipe-review` | Revisa el diff | Solo `git diff`, `git log` y `git show`; 8 pasos |
 
 El prompt de implementación incluye el contenido del ticket entre etiquetas `<ticket>` y una regla que lo declara
 especificación de trabajo (no instrucciones sobre el entorno) y pide ignorar peticiones de red, de leer credenciales o de
 salir del repositorio. **Esa regla reduce el riesgo, no lo elimina.** Los límites de verdad son los permisos del
-sistema operativo: ver [Seguridad](05-seguridad.md), donde también se explica por qué una lista de denegados no basta.
+sistema operativo: ver [Seguridad](05-seguridad.md), donde también se explica por qué una lista blanca tampoco es un
+límite absoluto.
 
 ### Linear
 

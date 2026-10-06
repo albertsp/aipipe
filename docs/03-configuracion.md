@@ -83,6 +83,7 @@ entrenan con tus prompts y `doctor` avisa si los configuras.
 | `base_branch` | `"main"` | Rama de la que parten las ramas de trabajo |
 | `branch_prefix` | `"ai/"` | Prefijo de la rama de cada ticket (`ai/alb-32-resumen`) |
 | `test_command` | `""` | Comando de tests, ejecutado con shell **dentro del worktree**. Vacío = no se verifica (no recomendado) |
+| `bash_allow` | `[]` | Comandos extra para la lista blanca de bash del implementador (además de los por defecto). El primer token de `test_command` se añade solo. Patrones glob de OpenCode; ver [seguridad](05-seguridad.md) |
 | `test_timeout_s` | `900` | Tiempo máximo de los tests |
 | `worktrees_dir` | `""` | Dónde crear los worktrees. Vacío = `~/.local/share/aipipe/worktrees/<repo>` |
 | `fetch` | `true` | Hacer `git fetch origin <base>` antes de crear el worktree (si hay remoto) |

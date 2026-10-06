@@ -11,7 +11,18 @@ permission:
   task: deny
   external_directory: deny
   bash:
-    "*": allow
+    "*": deny
+    "curl*": deny
+    "wget*": deny
+    "ssh*": deny
+    "scp*": deny
+    "sudo*": deny
+    "rm -rf*": deny
+    "python -c*": deny
+    "node -e*": deny
+    "perl*": deny
+    "bash -c*": deny
+    "sh -c*": deny
     "git push*": deny
     "git commit*": deny
     "git checkout*": deny
@@ -20,12 +31,7 @@ permission:
     "git clean*": deny
     "git rebase*": deny
     "git merge*": deny
-    "rm -rf*": deny
-    "sudo*": deny
-    "curl*": deny
-    "wget*": deny
-    "ssh*": deny
-    "scp*": deny
+{{bash_allow}}
 ---
 Eres el implementador de aipipe. Trabajas en un worktree aislado de git. Sigue el plan si existe, haz el cambio minimo,
 ejecuta los tests relevantes y termina con un resumen corto. No hagas commit ni push; no salgas del repositorio.

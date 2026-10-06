@@ -50,8 +50,9 @@ repositorios reales o GitHub. La versión de trabajo vive en Linear (ALB-21).
 - **Worktree aislado** por ticket: tu checkout no se toca.
 - **Los agentes no hacen commit, push ni cambian de rama**; lo hace el orquestador tras pasar tests y revisión.
 - **Permisos por agente** en OpenCode: sin web ni subagentes, sin salir del directorio, un tope de pasos y un tiempo
-  máximo por rol. El implementador tiene una lista de comandos denegados (`curl`, `wget`, `ssh`, `scp`, `sudo`,
-  `rm -rf*` y varias órdenes de git).
+  máximo por rol. El implementador tiene una **lista blanca de comandos** (`*: deny` + herramientas de lectura, el
+  gestor de paquetes, el comando de tests y `git status/diff/add`); todo lo demás —red, comandos destructivos o de
+  ejecución arbitraria— queda denegado.
 - **Sandbox para agentes y tests (0.5.0, `sandbox.mode = "bwrap"`).** Con bubblewrap, el agente y los tests corren con un
   HOME vacío (no existen `~/.config/aipipe`, `~/.config/gh` ni `~/.ssh`), un `/proc` propio (los procesos del runner no
   existen y `/proc/$PPID/environ` no revela nada), el sistema en solo lectura, `/tmp` privado y sin `sudo`. El metadato
@@ -85,9 +86,12 @@ Estos son los puntos débiles conocidos. No los ignores.
    de 10 $ y «Use balance» desactivado, y se puede rotar.
 3. **La clave de Linear tiene alcance total.** Una API key personal no se puede limitar. Existen apps OAuth con alcances
    más estrechos, pendiente de investigar.
-4. **Una lista de comandos denegados no es un límite.** Cubre `curl`, `wget`, `ssh`, `scp`, `sudo`, `rm -rf*` y varias
-   órdenes de git, pero no `python -c`, `node -e`, `nc`, `perl` ni la lectura de archivos con `cat`. Y
-   `external_directory: deny` no cubre lo que se lee por `bash`.
+4. **Una lista blanca de comandos tiene fugas menores por diseño.** Desde la 0.6.0 el implementador usa `*: deny` y solo
+   puede ejecutar lo listado (ver «Lista de comandos permitidos»). Aun así, `python`, `node`, `bash` y `sh` permitidos
+   con argumentos (p. ej. `python script.py`) son ejecución de código arbitrario del proyecto; solo se deniegan las
+   formas inline más obvias (`python -c`, `node -e`, `bash -c`). Y el patrón se compara contra el **primer** comando: un
+   agente manipulado con `make` (que ejecuta lo que diga el Makefile) o con un binario propio puede saltarse la lista.
+   La protección dura sigue siendo el sandbox (punto 1) y, cuando llegue, el proxy de red (ALB-31).
 5. **Salida de red sin restringir.** `ufw` filtra por puertos, no por dominios; un agente manipulado podría enviar datos fuera.
 6. **Se comprueba quién creó la issue, no quién la editó.** Si compartes el workspace, restringe también quién puede
    editar tus issues y ponerles `ai-ready`.
@@ -99,6 +103,37 @@ Estos son los puntos débiles conocidos. No los ignores.
    puede estar construido para evadirla. La protección dura sigue siendo el sandbox (ALB-27): un agente manipulado no
    debe poder leer credenciales, ejecutar comandos de red ni salir del repositorio.
 
+## Lista de comandos permitidos
+
+Los agentes de implementación (`aipipe-impl-*`) usan `*: deny`: solo pueden ejecutar los comandos de esta lista. Cada
+entrada es un patrón glob de OpenCode al que se le añade `*` (para permitir argumentos, p. ej. `git status --short`).
+
+**Por defecto** (en el código, `DEFAULT_BASH_ALLOW`):
+
+- **Lectura/exploración:** `cat`, `ls`, `head`, `tail`, `grep`, `find`, `sed`, `awk`, `wc`, `sort`, `diff`, `file`,
+  `tree`, `echo`, `printf`, `tr`, `cut`, `xargs`, `jq`.
+- **Git de lectura y preparación:** `git status`, `git diff`, `git log`, `git show`, `git add`. Nada de commit, push,
+  checkout, reset, clean, rebase ni merge: lo hace el orquestador.
+- **Ejecutables comunes:** `python`, `python3`, `pytest`, `pip`, `uv`, `node`, `npm`, `pnpm`, `npx`, `yarn`, `ruff`,
+  `eslint`, `make`, `bash`, `sh`.
+
+A esto se añade, por proyecto, el primer token del `test_command` (p. ej. `pytest` o `npm`) y lo que pongas en
+`[project].bash_allow`. Ejemplo en `.aipipe.toml`:
+
+```toml
+[project]
+test_command = "pytest -q"
+bash_allow = ["mypy", "black"]
+```
+
+**Qué queda fuera** (denegado siempre, aunque lo añadas a `bash_allow`): red (`curl`, `wget`, `ssh`, `scp`),
+destructivos (`rm -rf`, `sudo`) y ejecución arbitraria inline (`python -c`, `node -e`, `perl`, `bash -c`, `sh -c`).
+Tampoco están los comandos de git que escriben historia.
+
+**Cómo ampliarla:** añade el comando a `[project].bash_allow` y ejecuta `aipipe install-agents --force`. Mantén la
+lista corta: todo lo que permitas es código que un agente manipulado puede ejecutar. La lista blanca es solo una capa;
+la protección dura sigue siendo el sandbox.
+
 ## Pendiente
 
 Cada punto tiene su issue en Linear.
@@ -108,7 +143,7 @@ Cada punto tiene su issue en Linear.
 | 1 | Agentes y tests sin acceso a las claves de Linear y GitHub: sandbox (bubblewrap) y entorno por lista blanca | ALB-27 | **Hecho en la 0.5.0 y validado en el VPS** |
 | 2 | Credencial de Linear con alcance mínimo (app OAuth o usuario de servicio) | ALB-28 | **Antes de uso real** |
 | 3 | Regla de «el ticket son datos» en todos los prompts, prueba con una instrucción maliciosa y criterio para usar `ai:approve` | ALB-29 | **Hecho** (la prueba con un ticket malicioso real es manual, post-fusión) |
-| 4 | Pasar de «bash permitido salvo denegados» a una lista de comandos permitidos, configurable por proyecto | ALB-30 | Después |
+| 4 | Pasar de «bash permitido salvo denegados» a una lista de comandos permitidos, configurable por proyecto | ALB-30 | **Hecho en la 0.6.0** (validación con proyecto Python y Node en el VPS: post-fusión) |
 | 5 | Proxy con lista de dominios y reglas por usuario para limitar la salida de red | ALB-31 | Después |
 | 6 | 2FA en Tailscale y revisión de usuarios | ALB-6 | En curso |
 | 7 | Procedimiento de revocación de claves en el runbook | ALB-23 | Con el servicio systemd |
