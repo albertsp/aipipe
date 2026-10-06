@@ -83,7 +83,7 @@ entrenan con tus prompts y `doctor` avisa si los configuras.
 | `base_branch` | `"main"` | Rama de la que parten las ramas de trabajo |
 | `branch_prefix` | `"ai/"` | Prefijo de la rama de cada ticket (`ai/alb-32-resumen`) |
 | `test_command` | `""` | Comando de tests, ejecutado con shell **dentro del worktree**. Vacío = no se verifica (no recomendado) |
-| `bash_allow` | `[]` | Comandos extra para la lista blanca de bash del implementador (además de los por defecto). El primer token de `test_command` se añade solo. Patrones glob de OpenCode; ver [seguridad](05-seguridad.md) |
+| `bash_allow` | `[]` | Comandos extra para la lista blanca de bash del implementador (además de los por defecto). El primer token de `test_command` se añade solo. Patrones glob de OpenCode. Los comandos del cinturón `deny` (red, destructivos, ejecución inline) no se pueden reactivar desde aquí (ALB-42); ver [seguridad](05-seguridad.md) |
 | `test_timeout_s` | `900` | Tiempo máximo de los tests |
 | `worktrees_dir` | `""` | Dónde crear los worktrees. Vacío = `~/.local/share/aipipe/worktrees/<repo>` |
 | `fetch` | `true` | Hacer `git fetch origin <base>` antes de crear el worktree (si hay remoto) |
@@ -97,6 +97,11 @@ entrenan con tus prompts y `doctor` avisa si los configuras.
 
 Notas: con `push = true` pero sin remoto configurado, el trabajo queda en una rama local. Si hay remoto y la entrega falla,
 el ticket se marca como fallido y el trabajo sigue commiteado en la rama local.
+
+Sobre `bash_allow`: para ampliar la lista añade el comando y ejecuta `aipipe install-agents --force`. Ten en cuenta que
+lo que permitas es código que un agente manipulado puede ejecutar: la lista por defecto ya incluye `find`, `sed`, `awk`,
+`make`, `npm`, `pip` y `python`/`python3`, que siguen pudiendo ejecutar código (solo se cierran las formas inline como
+`python -c` o `find * -exec`). La protección dura es el sandbox y, cuando llegue, el proxy de red (ALB-31).
 
 ## `[budget]`
 

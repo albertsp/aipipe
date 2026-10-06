@@ -1,3 +1,5 @@
+import fnmatch
+import re
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -314,6 +316,25 @@ def _render_impl(tmp_path, home, toml='[project]\ntest_command = ""\n'):
     return agents.render_all(cfgmod.load(p))
 
 
+def _bash_rules(content: str) -> list[tuple[str, str]]:
+    """Extrae en orden las reglas `"patron*": allow|deny` del bloque `bash:` de una plantilla renderizada."""
+    rules: list[tuple[str, str]] = []
+    for line in content.splitlines():
+        m = re.match(r'^\s{4}"([^"]+)":\s*(allow|deny)\s*$', line)
+        if m:
+            rules.append((m.group(1), m.group(2)))
+    return rules
+
+
+def _last_rule_wins(rules: list[tuple[str, str]], command: str) -> bool:
+    """Evaluador con la semantica de OpenCode: gana la ULTIMA regla que coincide (comparacion por `fnmatch`)."""
+    decision = None
+    for pattern, action in rules:
+        if fnmatch.fnmatch(command, pattern):
+            decision = action
+    return decision == "allow"
+
+
 def test_impl_agents_use_allowlist_not_denylist(home, tmp_path):
     rendered = _render_impl(tmp_path, home)
     for name in IMPL_AGENTS:
@@ -322,8 +343,12 @@ def test_impl_agents_use_allowlist_not_denylist(home, tmp_path):
         assert '"*": allow' not in content
         for cmd in cfgmod.DEFAULT_BASH_ALLOW:
             assert f'"{cmd}*": allow' in content
+        # bash/sh/xargs salieron de la lista blanca (ALB-42)
+        for not_allowed in ("bash", "sh", "xargs"):
+            assert f'"{not_allowed}*": allow' not in content
         # cinturon: red, destructivos y ejecucion arbitraria siguen denegados
-        for deny in ("curl", "wget", "ssh", "scp", "sudo", "rm -rf", "python -c", "node -e", "perl",
+        for deny in ("curl", "wget", "ssh", "scp", "sudo", "rm -rf", "python -c", "python3 -c", "node -e",
+                     "perl", "bash -c", "sh -c", "find * -exec",
                      "git push", "git commit", "git checkout", "git reset", "git clean", "git rebase", "git merge"):
             assert f'"{deny}*": deny' in content
 
@@ -351,8 +376,34 @@ def test_python_and_node_projects_keep_tests_and_lint(home, tmp_path):
 
 
 def test_deny_rules_always_win_over_allowlist(home, tmp_path):
-    # aunque el proyecto anada estos comandos a bash_allow, el cinturon de denegados los mantiene fuera
+    # aunque el proyecto anada estos comandos a bash_allow, el cinturon de denegados los mantiene fuera. El evaluador
+    # de OpenCode es "gana la ultima regla que coincide", asi que el deny debe ir DESPUES del allow para imponerse.
     rendered = _render_impl(tmp_path, home, '[project]\ntest_command = ""\nbash_allow = ["curl", "rm -rf", "git push", "bash -c"]\n')["aipipe-impl-std.md"]
-    for deny in ("curl", "rm -rf", "git push", "bash -c"):
-        assert f'"{deny}*": deny' in rendered
-        assert f'"{deny}*": allow' not in rendered
+    rules = _bash_rules(rendered)
+    for pattern in ("curl", "rm -rf", "git push", "bash -c"):
+        assert f'"{pattern}*": deny' in rendered
+        assert f'"{pattern}*": allow' not in rendered
+    for command in ("curl", "rm -rf /", "git push", "bash -c"):
+        assert not _last_rule_wins(rules, command)
+
+
+def test_deny_last_rule_wins_semantics(home, tmp_path):
+    """Regresion ALB-42: los `deny` van despues del `allow`, asi que el evaluador «gana la ultima» deniega lo prometido.
+
+    Se evalua la plantilla renderizada con la misma semantica que OpenCode (ultima regla que coincide, por `fnmatch`).
+    """
+    rendered = _render_impl(tmp_path, home)["aipipe-impl-std.md"]
+    rules = _bash_rules(rendered)
+    assert rules
+
+    denied = [
+        "curl", "wget", "ssh", "scp", "sudo", "rm -rf /",
+        "python -c", "python3 -c", "node -e", "bash -c", "sh -c", "perl -e",
+        "git push", "git commit", "find . -exec x \\;",
+    ]
+    allowed = ["pytest -q", "python -m pytest", "git status", "git diff", "cat README.md"]
+
+    for cmd in denied:
+        assert not _last_rule_wins(rules, cmd), f"{cmd} deberia estar denegado"
+    for cmd in allowed:
+        assert _last_rule_wins(rules, cmd), f"{cmd} deberia estar permitido"

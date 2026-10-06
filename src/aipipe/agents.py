@@ -20,7 +20,8 @@ AGENT_ROLE = {
 # del cinturon `deny` que vive en la plantilla; si tocas uno, toca el otro.
 _BASH_DENY = {
     "curl", "wget", "ssh", "scp", "sudo", "rm -rf",
-    "python -c", "node -e", "perl", "bash -c", "sh -c",
+    "python -c", "python3 -c", "node -e", "perl", "bash -c", "sh -c",
+    "find * -exec",
     "git push", "git commit", "git checkout", "git switch", "git reset", "git clean", "git rebase", "git merge",
 }
 
