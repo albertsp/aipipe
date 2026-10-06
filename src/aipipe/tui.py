@@ -19,6 +19,7 @@ try:
     from prompt_toolkit.layout import HSplit, Layout, Window
     from prompt_toolkit.layout.controls import FormattedTextControl
     from prompt_toolkit.shortcuts import input_dialog
+    from prompt_toolkit.styles import Style
 
     _HAS_PROMPT_TOOLKIT = True
 except Exception:  # pragma: no cover
@@ -187,7 +188,7 @@ def main(argv: list[str] | None = None, _select: int | None = None) -> int:
         "message": "italic",
     }
 
-    app = Application(layout=layout, key_bindings=kb, full_screen=True, style=style)
+    app = Application(layout=layout, key_bindings=kb, full_screen=True, style=Style.from_dict(style))
     result = app.run()
 
     if isinstance(result, tuple) and result[0] == "input":
