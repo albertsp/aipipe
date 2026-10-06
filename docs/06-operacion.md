@@ -15,9 +15,11 @@ cuál. Para instalar desde cero, [02-instalacion-vps.md](02-instalacion-vps.md).
 | Un ticket concreto | `aipipe run --issue ALB-32` | Repetir o forzar un ticket (ignora la etiqueta de disparo, no el filtro de creador) |
 | Ensayo | `aipipe run --dry-run` | Ver qué cogería sin llamar a ningún modelo |
 | Bucle | `aipipe watch --interval 300` | Operación normal: consulta Linear cada 5 minutos |
+| Panel | `aipipe tui` | Ver el estado y lanzar acciones desde una pantalla (requiere `pip install aipipe[tui]`) |
 | Servicio | `systemctl … aipipe-watch@<repo>` | Que sobreviva a reinicios y a cerrar la terminal |
 
-Siempre desde el directorio del repositorio (`~/work/<repo>`) y con la clave de Linear cargada:
+Siempre desde el directorio del repositorio (`~/work/<repo>`) y con la clave de Linear cargada. La TUI carga sola la
+clave desde `~/.config/aipipe/env`; el resto de comandos la necesitan en el entorno (`set -a; source ~/.config/aipipe/env; set +a`):
 
 ```bash
 # [VPS aipipe]
@@ -80,6 +82,7 @@ Cosas a tener en cuenta:
 Comprobaciones rápidas:
 
 ```bash
+aipipe tui                                     # panel con todo lo de abajo en una pantalla (requiere `pip install aipipe[tui]`)
 aipipe budget                                  # gasto estimado por ventana (5 h, semana, mes)
 tail -n 20 ~/.local/share/aipipe/ledger.jsonl  # últimas ejecuciones
 ls ~/.local/state/aipipe/waiting/              # tickets esperando tu «aprobado»

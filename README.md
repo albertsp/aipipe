@@ -5,7 +5,7 @@ tickets de Linear, elige el modelo con un router, ejecuta agentes por rol en un 
 tests del proyecto y lo cuenta todo en el ticket. Pensado para desarrollar de principio a fin **desde el móvil**: creas el
 ticket, apruebas el plan con un comentario y revisas el resultado, mientras el trabajo corre en un servidor.
 
-- Solo librería estándar de Python (≥ 3.11), sin dependencias.
+- Solo librería estándar de Python (≥ 3.11), sin dependencias. La interfaz de terminal (`aipipe tui`) es opcional y usa `prompt-toolkit`, instalable con `pip install aipipe[tui]`.
 - Toda llamada a modelos pasa por `opencode run` (el cliente que Go valida). aipipe nunca habla con la API de Go.
 - Presupuesto bajo control: umbrales por ventana de Go y, sobre todo, «Use balance» desactivado en la consola de OpenCode.
 - Solo ejecuta tickets **creados por ti**: el texto de una issue llega a un agente con shell.
@@ -88,6 +88,7 @@ Personal API keys). Guía completa, incluido el servidor: [instalación en un VP
 | `aipipe budget [--add-usd 2.5 --note "..."]` | Uso estimado por ventana de Go |
 | `aipipe run [--issue ID] [--from-file f.md] [--max N] [--dry-run]` | Una pasada sobre la cola |
 | `aipipe watch [--interval 300]` | Vigila Linear en bucle |
+| `aipipe tui` | Panel de control interactivo (requiere `pip install aipipe[tui]`): estado, cola, consumo, detalle de ticket y registro en vivo |
 
 Códigos de salida de `aipipe run`: `0` ok · `1` fallo · `2` error de configuración o de Linear · `3` pausa por límites ·
 `4` en cola (otra ejecución ocupa el repositorio o el hueco global).
