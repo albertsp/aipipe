@@ -25,7 +25,7 @@ def schema():
     return build_schema(Path(SCHEMA).read_text())
 
 
-@pytest.mark.parametrize("name", ["Q_READY", "Q_GET", "Q_VIEWER", "Q_STATE", "Q_ISSUE_LABELS", "Q_COMMENTS", "Q_STATES", "Q_LABELS", "M_UPDATE", "M_COMMENT", "M_LABEL"])
+@pytest.mark.parametrize("name", ["Q_READY", "Q_GET", "Q_VIEWER", "Q_PROJECTS", "Q_STATE", "Q_ISSUE_LABELS", "Q_COMMENTS", "Q_STATES", "Q_LABELS", "M_UPDATE", "M_COMMENT", "M_LABEL"])
 def test_operation_is_valid(schema, name):
     assert validate(schema, parse(getattr(L, name))) == []
 
@@ -50,6 +50,7 @@ def _check(value, t, path="$"):
     "type_name,value",
     [
         ("IssueFilter", {"labels": {"name": {"eq": "x"}}, "state": {"name": {"in": ["Todo"]}}, "team": {"key": {"eq": "E"}}}),
+        ("IssueFilter", {"labels": {"name": {"eq": "x"}}, "state": {"name": {"in": ["Todo"]}}, "project": {"name": {"eq": "App"}}}),
         ("IssueFilter", {"labels": {"name": {"eq": "x"}}, "creator": {"id": {"eq": "u"}}}),
         ("IssueUpdateInput", {"stateId": "x", "addedLabelIds": ["a"], "removedLabelIds": ["b"]}),
         ("CommentCreateInput", {"issueId": "x", "body": "b"}),

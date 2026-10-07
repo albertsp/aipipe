@@ -50,6 +50,7 @@ class Ticket:
     team_id: str = ""
     team_key: str = ""
     creator: str = ""  # quien creo el ticket (email o nombre), solo informativo
+    project: str = ""  # nombre del proyecto de Linear al que pertenece el ticket (solo informativo)
 
     def text(self) -> str:
         return f"{self.title}\n\n{self.description}".strip()

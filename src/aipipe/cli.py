@@ -47,7 +47,9 @@ def cmd_init(args) -> int:
         print(f"{target} ya existe (usa --force para regenerarlo).")
     else:
         target.write_text(
-            agents.project_template(args.team or "", args.test_command or "", args.base or _detect_base(cfg.root)),
+            agents.project_template(
+                args.team or "", args.test_command or "", args.base or _detect_base(cfg.root), args.project or ""
+            ),
             encoding="utf-8",
         )
         print(f"Creado {target}")
@@ -106,10 +108,23 @@ def cmd_doctor(args) -> int:
     elif proj["pr"]:
         line(None, "project.pr = true no hace nada sin project.push = true")
     line(bool(cfg.sources), "configuracion: " + (", ".join(str(s) for s in cfg.sources) if cfg.sources else "ninguna; ejecuta `aipipe init`"))
-    line(bool(cfg["linear"]["team"]), f"linear.team = '{cfg['linear']['team']}'")
+    lin0 = cfg["linear"]
+    line(bool(lin0["team"]), f"linear.team = '{lin0['team']}'")
+    project = str(lin0.get("project") or "").strip()
+    line(True if project else None, f"linear.project = '{project}'" + ("" if project else " (vacio: se filtra solo por equipo)"))
     import os
 
-    line(bool(os.environ.get(cfg["linear"]["api_key_env"])), f"variable {cfg['linear']['api_key_env']} definida")
+    key_set = bool(os.environ.get(lin0["api_key_env"]))
+    line(key_set, f"variable {lin0['api_key_env']} definida")
+    if project:
+        if key_set:
+            try:
+                ok, msg = LinearTracker(cfg).check_project()
+                line(ok, msg)
+            except LinearError as exc:
+                line(False, f"linear.project: {exc}")
+        else:
+            line(False, f"linear.project = '{project}' no se pudo comprobar: falta {lin0['api_key_env']}")
     st, text = sandbox.describe(cfg)
     line(st, text)
     lin = cfg["linear"]
@@ -311,6 +326,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("init", help="crea .aipipe.toml e instala los agentes de OpenCode")
     s.add_argument("--team", help="clave del equipo de Linear (ENG...)")
+    s.add_argument("--project", help="proyecto de Linear (por nombre): solo se recogen sus tickets")
     s.add_argument("--test-command", help="comando de tests del proyecto")
     s.add_argument("--base", help="rama base (por defecto, autodetectada)")
     s.add_argument("--no-agents", action="store_true")

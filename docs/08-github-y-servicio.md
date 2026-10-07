@@ -136,8 +136,24 @@ Una instancia vigila **un** repositorio (el nombre tras `@` es la carpeta de `~/
 (`aipipe-watch@otro-repo`), con `max_concurrent = 1` para que no se pisen ([03](03-configuracion.md)). Un ticket
 nuevo con `ai-ready` se recoge en ≤ 5 minutos (`--interval 300`); el tiempo por ticket depende de su tamaño.
 
-**Limitación actual:** aipipe filtra Linear por equipo, no por proyecto. Con dos repositorios vigilados, ambos verían los
-mismos tickets (ver [01-guia-de-uso.md](01-guia-de-uso.md)). Empieza con un repositorio.
+Para vigilar **varios repositorios** que comparten equipo, fija el proyecto de Linear en cada `.aipipe.toml` para que
+cada instancia solo recoja los tickets del suyo:
+
+```toml
+# ~/work/repo-a/.aipipe.toml
+[linear]
+team = "ALB"
+project = "Web"
+
+# ~/work/repo-b/.aipipe.toml
+[linear]
+team = "ALB"
+project = "API"
+```
+
+Con `project` vacío se filtra solo por equipo. Si el proyecto no existe en Linear, `aipipe doctor` lo marca como error y
+`run`/`watch` no recogen nada, avisándolo. La lista de proyectos se lee una vez al arrancar el servicio: si renombras o
+creas el proyecto en Linear, reinicia `aipipe-watch@…` para que lo detecte.
 
 ## 7. Qué mirar al revisar un PR de aipipe
 

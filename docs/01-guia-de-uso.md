@@ -231,10 +231,25 @@ Qué no está resuelto todavía:
 Cada proyecto lleva su propio `.aipipe.toml`, que se commitea. Lo común a todos (modelos, presupuesto) puede ir en
 `~/.config/aipipe/config.toml`.
 
-**Limitación importante:** aipipe filtra por **equipo de Linear**, no por proyecto ni por repositorio. Si dos
-repositorios comparten el mismo equipo y hay un `watch` en cada uno, cualquiera de los dos puede recoger cualquier ticket
-con `ai-ready` y trabajar en el repositorio equivocado. Mientras tanto: un equipo de Linear por repositorio, o un solo
-`watch` y lanzar los demás con `aipipe run --issue`. Un filtro por proyecto de Linear está pendiente.
+Cada repositorio fija su **proyecto de Linear** con `[linear] project = "..."`; así, aun compartiendo equipo, cada
+instancia solo recoge los tickets de su proyecto. Con `project` vacío se filtra solo por equipo (el comportamiento
+anterior). Dos repositorios vigilados:
+
+```toml
+# ~/work/repo-a/.aipipe.toml
+[linear]
+team = "ALB"
+project = "Web"
+
+# ~/work/repo-b/.aipipe.toml
+[linear]
+team = "ALB"
+project = "API"
+```
+
+Con una instancia del servicio por repositorio (`aipipe-watch@repo-a` y `aipipe-watch@repo-b`), cada uno ve solo los
+`ai-ready` de su proyecto. Si el proyecto configurado no existe en Linear (p. ej. se renombró), `aipipe doctor` lo marca
+como error y `run`/`watch` no recogen nada, avisándolo.
 
 El límite global de ejecuciones simultáneas (`runner.max_concurrent`, por defecto 1) vale para toda la máquina, y nunca
 hay dos ejecuciones en el mismo repositorio.

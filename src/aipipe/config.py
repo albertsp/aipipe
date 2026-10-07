@@ -31,6 +31,9 @@ DEFAULT_BASH_ALLOW: list[str] = [
 DEFAULTS: dict = {
     "linear": {
         "team": "",
+        # Proyecto de Linear (por nombre). Si esta definido, solo se recogen tickets de ese proyecto; vacio = por equipo.
+        # Es lo que permite vigilar varios repositorios que comparten equipo: cada .aipipe.toml fija su proyecto.
+        "project": "",
         "trigger_label": "ai-ready",
         "trigger_states": ["Todo"],
         "state_in_progress": "In Progress",

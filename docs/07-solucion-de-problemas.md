@@ -102,8 +102,9 @@ la antigua.
 1. **Etiqueta.** El ticket necesita `ai-ready` (el nombre exacto de `trigger_label`).
 2. **Estado.** Debe estar en un estado de `trigger_states` (por defecto *Todo*). Un ticket en *Backlog*, *In Progress*,
    *In Review* o *Done* no se recoge.
-3. **Equipo.** Solo se leen los tickets del equipo configurado (`team = "ALB"`). Aipipe **filtra por equipo, no por
-   proyecto de Linear**; ver la limitación multi-repositorio en [01-guia-de-uso.md](01-guia-de-uso.md).
+3. **Equipo y proyecto.** Solo se leen los tickets del equipo configurado (`team = "ALB"`) y, si defines
+   `project = "..."` en `[linear]`, solo los de ese proyecto. Ver varios repositorios en
+   [01-guia-de-uso.md](01-guia-de-uso.md#11-varios-proyectos).
 4. **Creador.** Solo se ejecutan los tickets **creados por el dueño de la API key** (o por `allowed_creators`). Si creó el
    ticket otra persona, una integración o un usuario borrado, se descarta con un aviso. `aipipe doctor` muestra la política
    activa. No actives `allow_any_creator` para «arreglarlo»: léelo en [05-seguridad.md](05-seguridad.md).
