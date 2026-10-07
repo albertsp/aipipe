@@ -21,6 +21,7 @@ fragment IssueFields on Issue {
   id identifier title description url priority estimate
   state { id name type }
   team { id key }
+  project { id name }
   creator { id name email }
   labels { nodes { id name } }
 }
@@ -32,6 +33,7 @@ Q_READY = (
 )
 Q_GET = "query GetIssue($id: String!) { issue(id: $id) { ...IssueFields } }" + FRAGMENT
 Q_VIEWER = "query Viewer { viewer { id name email } }"
+Q_PROJECTS = "query Projects { projects { nodes { id name } } }"
 Q_STATE = "query IssueState($id: String!) { issue(id: $id) { state { id name type } } }"
 Q_STATES = "query TeamStates($teamId: String!) { team(id: $teamId) { states { nodes { id name type } } } }"
 Q_LABELS = "query TeamLabels($teamId: String!) { team(id: $teamId) { labels { nodes { id name } } } }"
@@ -64,6 +66,7 @@ def _ticket(node: dict) -> Ticket:
         team_id=(node.get("team") or {}).get("id", ""),
         team_key=(node.get("team") or {}).get("key", ""),
         creator=_creator_label(node),
+        project=(node.get("project") or {}).get("name", ""),
     )
 
 
@@ -86,6 +89,8 @@ class LinearTracker:
         self._allowed: set[str] | None = None
         self._viewer_id: str | None = None  # solo en modo por defecto (dueño de la clave)
         self._skipped: set[str] = set()
+        self._project_ids: dict[str, str] | None = None  # {nombre.lower(): nombre canonico} de los proyectos visibles
+        self._bad_project_warned: bool = False
 
     # --- transporte -----------------------------------------------------
     def _gql(self, query: str, variables: dict | None = None, op: str | None = None, retries: int = 3) -> dict:
@@ -170,6 +175,43 @@ class LinearTracker:
             "del dueño de la API key (o de linear.allowed_creators), porque su texto llega a un agente con shell."
         )
 
+    # --- filtro por proyecto -------------------------------------------------
+    def configured_project(self) -> str:
+        return str(self.cfg.get("project") or "").strip()
+
+    def _projects(self) -> dict[str, str]:
+        """{nombre.lower(): nombre canonico} de los proyectos de Linear visibles para la API key.
+
+        La lista se cachea durante la vida del tracker: en `watch` (un unico tracker para todo el bucle) un proyecto
+        renombrado o creado tras el arranque no se detecta hasta reiniciar el servicio."""
+        if self._project_ids is None:
+            data = self._gql(Q_PROJECTS, None, "Projects")
+            nodes = ((data.get("projects") or {}).get("nodes")) or []
+            self._project_ids = {n["name"].lower(): n["name"] for n in nodes if n.get("name")}
+        return self._project_ids
+
+    def check_project(self) -> tuple[bool, str]:
+        """(ok, mensaje) sobre linear.project. Sin proyecto configurado: (True, "")."""
+        project = self.configured_project()
+        if not project:
+            return True, ""
+        try:
+            names = self._projects()
+        except LinearError as exc:
+            return False, f"no pude comprobar si el proyecto '{project}' existe en Linear ({exc})"
+        canonical = names.get(project.lower())
+        if canonical is None:
+            return False, f"el proyecto '{project}' no existe en Linear (¿se renombro?). Revisa o corrige linear.project en .aipipe.toml"
+        return True, f"proyecto '{canonical}' encontrado en Linear"
+
+    def _warn_bad_project(self, project: str) -> None:
+        if not self._bad_project_warned:
+            self._bad_project_warned = True
+            self.log(
+                f"AVISO: el proyecto de Linear '{project}' no existe (o no es visible para la API key). "
+                "No se recoge ningun ticket: revisa linear.project en .aipipe.toml."
+            )
+
     # --- Tracker ---------------------------------------------------------
     def ready(self) -> list[Ticket]:
         return self._query_issues(self.cfg["trigger_label"], self.cfg["trigger_states"])
@@ -185,6 +227,14 @@ class LinearTracker:
         }
         if self.cfg["team"]:
             filt["team"] = {"key": {"eq": self.cfg["team"]}}
+        project = self.configured_project()
+        if project:
+            canonical = self._projects().get(project.lower())
+            if canonical is None:  # no existe -> no se recoge nada, con aviso claro
+                self._warn_bad_project(project)
+                return []
+            # se envia el nombre canonico devuelto por Linear: el filtro por nombre es sensible a mayusculas
+            filt["project"] = {"name": {"eq": canonical}}
         check = not self.cfg.get("allow_any_creator")
         if check:
             self._allowed_creators()
@@ -193,6 +243,8 @@ class LinearTracker:
         data = self._gql(Q_READY, {"filter": filt, "first": int(self.cfg["max_per_batch"]) * 3}, "ReadyIssues")
         tickets = []
         for node in data["issues"]["nodes"]:
+            if project and ((node.get("project") or {}).get("name") or "").lower() != project.lower():
+                continue  # defensa en profundidad: el servidor ya filtra por proyecto
             if check and not self._authorized(node):  # defensa en profundidad: la comprobacion local es la autoritativa
                 if node.get("identifier") not in self._skipped:
                     self._skipped.add(node.get("identifier"))
@@ -209,6 +261,14 @@ class LinearTracker:
             raise LinearError(f"No existe el ticket {identifier}")
         if not self._authorized(data["issue"]):
             raise LinearError(self._reject_msg(data["issue"]))
+        project = self.configured_project()
+        if project:
+            node_project = (data["issue"].get("project") or {}).get("name") or ""
+            if node_project.lower() != project.lower():
+                raise LinearError(
+                    f"{identifier} no se ejecuta: pertenece al proyecto '{node_project or 'desconocido'}' de Linear, "
+                    f"no a '{project}' (linear.project en .aipipe.toml)."
+                )
         return _ticket(data["issue"])
 
     def _update(self, t: Ticket, **input_) -> None:

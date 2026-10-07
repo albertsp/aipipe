@@ -164,7 +164,8 @@ en lugar de en el worktree.
 - **Cómo se ejecuta OpenCode sin interfaz (ALB-10).** Se usa `opencode run` por proceso. No se ha comparado con
   `opencode serve`. Como las peticiones a Go las hace OpenCode y no aipipe, el *user agent* y la cabecera
   `x-opencode-session` que pide la documentación de Go no los controla aipipe; falta comprobar qué envía OpenCode.
-- **Filtro por proyecto de Linear.** Hoy solo se filtra por equipo (ver la [guía](01-guia-de-uso.md#11-varios-proyectos)).
+- **Filtro por proyecto de Linear.** Se filtra por equipo y, opcionalmente, por proyecto (`[linear] project`, ver la
+  [guía](01-guia-de-uso.md#11-varios-proyectos)).
 
 ## Cómo extenderlo
 

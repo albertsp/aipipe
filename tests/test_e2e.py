@@ -303,6 +303,107 @@ def test_allow_any_creator_disables_filter(repo, linear_server):
     assert tr.get("ENG-2").creator == "otro@x.com"
 
 
+# ---- filtro por proyecto (ALB-44): cada repo solo ve su proyecto de Linear --------------
+def test_project_filter_collects_only_repo_project(repo, linear_server):
+    state, url = linear_server
+    state["issues"] = [
+        issue_node("ENG-1", project="App"),
+        issue_node("ENG-2", project="Api"),
+        issue_node("ENG-3", project="App", labels=("ai-waiting",)),
+        issue_node("ENG-4", project="Api", labels=("ai-waiting",)),
+    ]
+    state["issues"][2]["state"] = {"id": "s-prog", "name": "In Progress", "type": "started"}
+    state["issues"][3]["state"] = {"id": "s-prog", "name": "In Progress", "type": "started"}
+    tr, _ = _tracker_with(url, project="App")
+    assert [t.identifier for t in tr.ready()] == ["ENG-1"]
+    assert [t.identifier for t in tr.waiting()] == ["ENG-3"]
+    assert all(t.project == "App" for t in tr.ready() + tr.waiting())
+    filt = [c for c in state["calls"] if c[0] == "ReadyIssues"][0][1]["filter"]
+    assert filt["project"] == {"name": {"eq": "App"}}
+
+
+def test_project_filter_is_case_insensitive_and_uses_canonical_name(repo, linear_server):
+    state, url = linear_server
+    state["issues"] = [issue_node("ENG-1", project="App"), issue_node("ENG-2", project="Api")]
+    tr, _ = _tracker_with(url, project="app")                               # en el toml, minusculas
+    assert [t.identifier for t in tr.ready()] == ["ENG-1"]                 # se recoge el del proyecto "App"
+    assert all(t.project == "App" for t in tr.ready())
+    filt = [c for c in state["calls"] if c[0] == "ReadyIssues"][0][1]["filter"]
+    assert filt["project"] == {"name": {"eq": "App"}}                      # se envia el nombre canonico, no "app"
+    ok, msg = tr.check_project()
+    assert ok and "App" in msg and "encontrado en Linear" in msg           # doctor coincide con el filtro real
+
+
+def test_project_filter_does_not_override_creator_filter(repo, linear_server):
+    state, url = linear_server
+    state["issues"] = [issue_node("ENG-1", project="App"), issue_node("ENG-2", project="App", creator=OTHER)]
+    tr, logs = _tracker_with(url, project="App")
+    assert [t.identifier for t in tr.ready()] == ["ENG-1"]                 # el del proyecto correcto pero de otro creador sigue fuera
+    assert any("ENG-2" in m and "no esta autorizado" in m for m in logs)
+
+
+def test_waiting_from_other_project_is_not_collected(repo, linear_server):
+    state, url = linear_server
+    node = issue_node("ENG-5", project="Api", labels=("ai-waiting",))
+    node["state"] = {"id": "s-prog", "name": "In Progress", "type": "started"}
+    state["issues"] = [node]
+    tr, _ = _tracker_with(url, project="App")
+    assert tr.waiting() == []                                              # un plan de otro proyecto no puede esperar aprobacion aqui
+
+
+def test_ready_warns_and_collects_nothing_when_project_missing(repo, linear_server):
+    state, url = linear_server
+    state["issues"] = [issue_node("ENG-1", project="App")]
+    tr, logs = _tracker_with(url, project="Inexistente")
+    assert tr.ready() == [] and tr.waiting() == []
+    assert any("no existe" in m for m in logs)                             # no se queda callado
+    tr.ready()
+    assert sum("no existe" in m for m in logs) == 1                        # un solo aviso por sondeo repetido
+
+
+def test_run_issue_refuses_ticket_from_other_project(repo, fake_opencode, linear_server, tmp_path, capsys):
+    state, url = linear_server
+    state["issues"] = [issue_node("ENG-9", project="Api")]
+    (repo / ".aipipe.toml").write_text(
+        (repo / ".aipipe.toml").read_text().replace(
+            '[linear]\nteam = "ENG"', f'[linear]\nteam = "ENG"\nproject = "App"\napi_url = "{url}"'
+        )
+    )
+    assert cli.main(["run", "--issue", "ENG-9"]) == 2
+    err = capsys.readouterr().err
+    assert "no se ejecuta" in err and "Api" in err and "App" in err
+    assert agents_called(tmp_path) == []                                   # ningun agente
+    assert not [c for c in state["calls"] if c[0] in ("UpdateIssue", "AddComment")]   # y Linear no se toco
+
+
+def test_cli_init_writes_project(repo, home, tmp_path):
+    (repo / ".aipipe.toml").unlink()
+    assert cli.main(["init", "--team", "ENG", "--project", "Nombre", "--no-agents"]) == 0
+    cfgtxt = (repo / ".aipipe.toml").read_text()
+    assert 'project = "Nombre"' in cfgtxt
+    assert cfgmod.load()["linear"]["project"] == "Nombre"                  # el toml generado es valido
+
+
+def test_doctor_reports_project_and_errors_when_missing(repo, linear_server, capsys, monkeypatch):
+    state, url = linear_server
+    state["issues"] = [issue_node("ENG-1", project="App")]
+    monkeypatch.setenv("LINEAR_API_KEY", "x")
+    (repo / ".aipipe.toml").write_text(
+        (repo / ".aipipe.toml").read_text().replace(
+            '[linear]\nteam = "ENG"', f'[linear]\nteam = "ENG"\nproject = "App"\napi_url = "{url}"'
+        )
+    )
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "linear.project = 'App'" in out and "encontrado en Linear" in out
+    (repo / ".aipipe.toml").write_text(
+        (repo / ".aipipe.toml").read_text().replace('project = "App"', 'project = "Inexistente"')
+    )
+    cli.main(["doctor"])
+    out = capsys.readouterr().out
+    assert "linear.project = 'Inexistente'" in out and "no existe en Linear" in out
+
+
 def test_doctor_reports_creator_policy(repo, capsys, monkeypatch):
     monkeypatch.setenv("LINEAR_API_KEY", "x")
     cli.main(["doctor"])

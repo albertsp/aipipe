@@ -91,10 +91,11 @@ def install(cfg: dict, dest: Path, force: bool = False) -> dict[str, str]:
     return result
 
 
-def project_template(team: str, test_command: str, base_branch: str) -> str:
+def project_template(team: str, test_command: str, base_branch: str, project: str = "") -> str:
     raw = resources.files("aipipe").joinpath("templates", "aipipe.toml.tmpl").read_text(encoding="utf-8")
     return (
         raw.replace("{{team}}", team)
+        .replace("{{project}}", project.replace("\\", "\\\\").replace('"', '\\"'))
         .replace("{{test_command}}", test_command.replace("\\", "\\\\").replace('"', '\\"'))
         .replace("{{base_branch}}", base_branch)
     )

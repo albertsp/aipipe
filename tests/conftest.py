@@ -83,10 +83,19 @@ class LinearMock(BaseHTTPRequestHandler):
             want = f["labels"]["name"]["eq"]
             states = f["state"]["name"]["in"]
             team = ((f.get("team") or {}).get("key") or {}).get("eq")
+            project = ((f.get("project") or {}).get("name") or {}).get("eq")
             nodes = [i for i in st["issues"]
                      if any(l["name"] == want for l in i["labels"]["nodes"]) and i["state"]["name"] in states
-                     and (not team or i["team"]["key"] == team)]
+                     and (not team or i["team"]["key"] == team)
+                     and (not project or (i.get("project") or {}).get("name") == project)]
             data = {"issues": {"nodes": nodes}}
+        elif op == "Projects":
+            seen = {}
+            for i in st["issues"]:
+                p = i.get("project") or {}
+                if p.get("id") and p.get("name"):
+                    seen[p["id"]] = {"id": p["id"], "name": p["name"]}
+            data = {"projects": {"nodes": list(seen.values())}}
         elif op == "GetIssue":
             data = {"issue": self._issue(st, v["id"])}
         elif op == "IssueLabels":
@@ -156,7 +165,11 @@ ME = {"id": "u-me", "name": "Yo", "email": "me@x.com"}
 OTHER = {"id": "u-other", "name": "Otro", "email": "otro@x.com"}
 
 
-def issue_node(identifier="ENG-1", title="Anadir feature", labels=("ai-ready",), priority=2, creator=ME):
+def project_node(name="App"):
+    return {"id": f"proj-{name.lower().replace(' ', '-')}", "name": name}
+
+
+def issue_node(identifier="ENG-1", title="Anadir feature", labels=("ai-ready",), priority=2, creator=ME, project="App"):
     return {
         "creator": creator,
         "id": f"id-{identifier}", "identifier": identifier, "title": title,
@@ -164,6 +177,7 @@ def issue_node(identifier="ENG-1", title="Anadir feature", labels=("ai-ready",),
         "priority": priority, "estimate": None,
         "state": {"id": "s-todo", "name": "Todo", "type": "unstarted"},
         "team": {"id": "team-1", "key": "ENG"},
+        "project": project_node(project),
         "labels": {"nodes": [{"id": label_id(n), "name": n} for n in labels]},
     }
 

@@ -32,6 +32,7 @@ pr = false
 | Clave | Por defecto | Qué hace |
 |---|---|---|
 | `team` | `""` | Clave del equipo de Linear (por ejemplo `ALB`). Solo se miran issues de ese equipo. Vacío = todos los equipos (no recomendado) |
+| `project` | `""` | Proyecto de Linear (por **nombre**). Si está definido, solo se recogen tickets de ese proyecto; vacío = por equipo. Es lo que permite vigilar varios repositorios que comparten equipo |
 | `trigger_label` | `"ai-ready"` | Etiqueta que dispara a aipipe |
 | `trigger_states` | `["Todo"]` | Estados en los que se recoge un ticket. El **primero** es también al que vuelven los tickets que fallan, se pausan o se rechazan |
 | `state_in_progress` | `"In Progress"` | Estado mientras trabaja. Sacar la issue de este estado = parar |
@@ -185,7 +186,7 @@ Un modelo desconocido se trata como caro (`3,00 / 15,00` y límite de 15 $) para
 
 ### `aipipe init`
 
-Crea `.aipipe.toml` e instala los agentes. Opciones: `--team ENG`, `--test-command "pytest -q"`, `--base main`
+Crea `.aipipe.toml` e instala los agentes. Opciones: `--team ENG`, `--project "Nombre"`, `--test-command "pytest -q"`, `--base main`
 (si no la indicas, la deduce del remoto `origin` o de la rama actual), `--no-agents`, `--force` (regenera). Falla si no estás en un repositorio git.
 
 ### `aipipe install-agents`
@@ -196,9 +197,10 @@ Sin `--force` no sobrescribe uno que difiere.
 
 ### `aipipe doctor`
 
-Comprueba el entorno: Python, OpenCode, git, `gh` (solo si `pr = true`), repositorio, configuración, equipo, clave de
-Linear, política de creadores, **estado del sandbox**, modo del punto de control, comando de tests, modelos, agentes, CodeGraph y Graft. Devuelve
-código `1` si hay algún `ERR`. Debe ejecutarse **dentro del repositorio** y con la clave cargada.
+Comprueba el entorno: Python, OpenCode, git, `gh` (solo si `pr = true`), repositorio, configuración, equipo, **proyecto**
+de Linear (y avisa si no existe), clave de Linear, política de creadores, **estado del sandbox**, modo del punto de
+control, comando de tests, modelos, agentes, CodeGraph y Graft. Devuelve código `1` si hay algún `ERR`. Debe ejecutarse
+**dentro del repositorio** y con la clave cargada.
 
 ### `aipipe sandbox-check [--opencode]`
 
